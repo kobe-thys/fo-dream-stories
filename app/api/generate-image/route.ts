@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 const STYLE_SUFFIX = "Children's illustrated storybook style, dreamlike, warm colours, soft lighting, magical forest world, safe and wonder-filled"
 
 export async function POST(request: NextRequest) {
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   try {
     const { prompt, childProfileId, tileId } = await request.json()
     const fullPrompt = `${prompt}. ${STYLE_SUFFIX}`
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       response_format: 'url',
     })
 
-    const openAiUrl = result.data[0]?.url
+    const openAiUrl = result.data?.[0]?.url
     if (!openAiUrl) throw new Error('No image URL returned from DALL-E')
 
     // Fetch and store in Supabase (OpenAI URLs expire after ~1 hour)

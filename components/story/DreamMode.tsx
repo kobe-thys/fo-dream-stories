@@ -9,7 +9,7 @@ interface DreamModeProps {
 export default function DreamMode({ onComplete, minimumSeconds = 120 }: DreamModeProps) {
   const [timerDone, setTimerDone] = useState(false)
   const [showMessage, setShowMessage] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => {
     timerRef.current = setTimeout(() => setTimerDone(true), minimumSeconds * 1000)

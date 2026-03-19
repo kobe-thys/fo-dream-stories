@@ -18,8 +18,8 @@ export default function SayItTab({ childProfileId, tileId, onSubmit }: SayItTabP
   const [seconds, setSeconds] = useState(0)
   const mediaRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
-  const timerRef = useRef<ReturnType<typeof setInterval>>()
-  const autoStopRef = useRef<ReturnType<typeof setTimeout>>()
+  const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
+  const autoStopRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const rawUrlRef = useRef<string | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
 

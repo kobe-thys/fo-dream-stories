@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-
 export async function POST(request: NextRequest) {
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   try {
     const { imageBase64, mimeType } = await request.json()
     const response = await openai.chat.completions.create({
@@ -14,7 +13,6 @@ export async function POST(request: NextRequest) {
           content: [
             {
               type: 'image_url',
-              // @ts-expect-error OpenAI SDK v6 narrows content part types and doesn't expose image_url directly
               image_url: { url: `data:${mimeType};base64,${imageBase64}` },
             },
             {
