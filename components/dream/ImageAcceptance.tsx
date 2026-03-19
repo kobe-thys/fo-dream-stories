@@ -86,6 +86,7 @@ export default function ImageAcceptance({
       .from('child_tile_states')
       .update({ state: 'completed', completed_at: new Date().toISOString() })
       .eq('child_profile_id', childProfileId)
+      .eq('tile_id', tile.id)
 
     if (updateError) {
       setSaving(false)
