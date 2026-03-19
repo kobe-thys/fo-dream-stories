@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
           content: [
             {
               type: 'image_url',
-              // @ts-ignore
+              // @ts-expect-error OpenAI SDK v6 narrows content part types and doesn't expose image_url directly
               image_url: { url: `data:${mimeType};base64,${imageBase64}` },
             },
             {
