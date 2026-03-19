@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Tile, MappedTile } from '@/lib/types'
+import { Tile, MappedTile, TileState } from '@/lib/types'
 import ListeningMode from '@/components/story/ListeningMode'
 import ReadingMode from '@/components/story/ReadingMode'
 
@@ -14,18 +14,26 @@ export default function StoryPage({ params }: { params: { tileId: string } }) {
   const [tile, setTile] = useState<MappedTile | null>(null)
   const [loading, setLoading] = useState(true)
   useEffect(() => {
-    const childId = sessionStorage.getItem('activeProfileId') ?? ''
     async function load() {
+      const childId = sessionStorage.getItem('activeProfileId') ?? ''
       const supabase = createClient()
-      const { data } = await supabase
+      const { data: tileData } = await supabase
         .from('tiles')
         .select('*')
         .eq('id', params.tileId)
         .single()
-      if (data) {
+
+      if (tileData) {
+        const { data: stateRow } = await supabase
+          .from('child_tile_states')
+          .select('state')
+          .eq('child_profile_id', childId)
+          .eq('tile_id', params.tileId)
+          .single()
+
         const mappedTile: MappedTile = {
-          ...(data as Tile),
-          childState: 'unlocked',
+          ...(tileData as Tile),
+          childState: (stateRow?.state as TileState) ?? 'unlocked',
           token_image_url: null,
         }
         setTile(mappedTile)
@@ -41,9 +49,10 @@ export default function StoryPage({ params }: { params: { tileId: string } }) {
       const supabase = createClient()
       await supabase
         .from('child_tile_states')
-        .update({ state: 'listened', listened_at: new Date().toISOString() })
-        .eq('child_profile_id', childId)
-        .eq('tile_id', tile.id)
+        .upsert(
+          { child_profile_id: childId, tile_id: tile.id, state: 'listened', listened_at: new Date().toISOString() },
+          { onConflict: 'child_profile_id,tile_id' }
+        )
     }
     router.push('/map')
   }
