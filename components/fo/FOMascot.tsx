@@ -14,6 +14,7 @@ export default function FOMascot({ message }: FOMascotProps) {
         {message}
         {/* Tail pointing down toward FO */}
         <span
+          aria-hidden="true"
           className="absolute bottom-0 right-8 translate-y-full w-0 h-0"
           style={{
             borderLeft: '8px solid transparent',
