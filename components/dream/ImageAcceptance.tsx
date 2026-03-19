@@ -107,8 +107,9 @@ export default function ImageAcceptance({
     setAttempts(prev => prev + 1)
   }
 
-  function handleSkip() {
-    saveDream(tile.default_token_image_url ?? '')
+  async function handleSkip() {
+    const tokenUrl = tile.default_token_image_url ?? imageUrl ?? ''
+    await saveDream(tokenUrl)
   }
 
   // Alex reveal card
@@ -158,14 +159,16 @@ export default function ImageAcceptance({
     return (
       <div className="flex flex-col items-center gap-4 py-8">
         <p className="text-destructive font-medium">Something went wrong generating your dream picture.</p>
-        <button
-          onClick={() => {
-            setAttempts(prev => prev + 1)
-          }}
-          className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-2xl"
-        >
-          Try a different description
-        </button>
+        {attempts < MAX_ATTEMPTS && (
+          <button
+            onClick={() => {
+              setAttempts(prev => prev + 1)
+            }}
+            className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-2xl"
+          >
+            Try a different description
+          </button>
+        )}
         <button
           onClick={handleSkip}
           className="w-full py-3 bg-muted text-foreground font-semibold rounded-2xl"
@@ -217,7 +220,7 @@ export default function ImageAcceptance({
       {attempts < MAX_ATTEMPTS && (
         <button
           onClick={handleTryAgain}
-          disabled={saving}
+          disabled={loading || saving}
           className="w-full py-3 bg-muted text-foreground font-semibold rounded-2xl disabled:opacity-50"
         >
           Try again

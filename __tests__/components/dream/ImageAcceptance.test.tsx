@@ -40,6 +40,6 @@ describe('ImageAcceptance', () => {
     fireEvent.click(screen.getByText(/Accept/i))
     await waitFor(() => screen.getByText(/Back to the map/i))
     fireEvent.click(screen.getByText(/Back to the map/i))
-    await waitFor(() => expect(onComplete).toHaveBeenCalled())
+    await waitFor(() => expect(onComplete).toHaveBeenCalledWith({ tokenImageUrl: 'https://storage.example.com/dream.png' }))
   })
 })
