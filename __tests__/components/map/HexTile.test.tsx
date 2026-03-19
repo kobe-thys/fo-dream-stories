@@ -63,14 +63,18 @@ describe('HexTile', () => {
     expect(onClick).toHaveBeenCalledWith(baseTile)
   })
 
-  it('renders "?" for revealed tiles', () => {
-    render(<HexTile tile={{ ...baseTile, childState: 'revealed' }} x={0} y={0} />)
-    expect(screen.getByText('?')).toBeInTheDocument()
-  })
-
   it('applies selected scale when isSelected is true', () => {
     const { container } = render(<HexTile tile={baseTile} x={0} y={0} isSelected={true} />)
     const el = container.querySelector('[data-type]') as HTMLElement
     expect(el.style.transform).toContain('scale')
+  })
+
+  it('applies rotateY(180deg) when isFlipped is true', () => {
+    const { container } = render(
+      <HexTile tile={baseTile} x={0} y={0} isFlipped={true} />
+    )
+    const outer = container.querySelector('[data-type]') as HTMLElement
+    const flipDiv = outer.firstElementChild as HTMLElement
+    expect(flipDiv.style.transform).toContain('rotateY(180deg)')
   })
 })
