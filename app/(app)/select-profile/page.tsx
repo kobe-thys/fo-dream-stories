@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import ProfileGrid from '@/components/profile/ProfileGrid'
+import FOMascot from '@/components/fo/FOMascot'
 import { ChildProfile } from '@/lib/types'
 
 export default function SelectProfilePage() {
@@ -46,6 +47,7 @@ export default function SelectProfilePage() {
         onSelect={handleSelect}
         onAdd={() => router.push('/create-profile')}
       />
+      <FOMascot message="Which dreamer are we tonight?" />
     </main>
   )
 }

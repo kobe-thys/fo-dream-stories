@@ -1,0 +1,19 @@
+import { render, screen } from '@testing-library/react'
+import FOMascot from '@/components/fo/FOMascot'
+
+describe('FOMascot', () => {
+  it('renders the message text', () => {
+    render(<FOMascot message="Hello, dreamer!" />)
+    expect(screen.getByText('Hello, dreamer!')).toBeInTheDocument()
+  })
+
+  it('renders the FO image with correct alt text', () => {
+    render(<FOMascot message="Hello!" />)
+    expect(screen.getByAltText('Friendly Onion')).toBeInTheDocument()
+  })
+
+  it('renders nothing when message is empty', () => {
+    const { container } = render(<FOMascot message="" />)
+    expect(container.firstChild).toBeNull()
+  })
+})

@@ -1,4 +1,5 @@
 import SignupForm from '@/components/auth/SignupForm'
+import FOMascot from '@/components/fo/FOMascot'
 import Link from 'next/link'
 
 export default function SignupPage() {
@@ -13,6 +14,7 @@ export default function SignupPage() {
         Already have an account?{' '}
         <Link href="/login" className="text-primary hover:underline">Log in</Link>
       </p>
+      <FOMascot message="I can't wait to read with you!" />
     </main>
   )
 }
