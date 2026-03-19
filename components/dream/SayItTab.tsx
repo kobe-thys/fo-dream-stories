@@ -1,5 +1,5 @@
 'use client'
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { uploadToStorage, storagePath } from '@/lib/storage'
 
 interface SayItTabProps {
@@ -21,10 +21,21 @@ export default function SayItTab({ childProfileId, tileId, onSubmit }: SayItTabP
   const timerRef = useRef<ReturnType<typeof setInterval>>()
   const autoStopRef = useRef<ReturnType<typeof setTimeout>>()
   const rawUrlRef = useRef<string | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+
+  useEffect(() => {
+    return () => {
+      mediaRef.current?.stop()
+      clearInterval(timerRef.current)
+      clearTimeout(autoStopRef.current)
+      streamRef.current?.getTracks().forEach(t => t.stop())
+    }
+  }, [])
 
   async function startRecording() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
       const recorder = new MediaRecorder(stream)
       mediaRef.current = recorder
       chunksRef.current = []

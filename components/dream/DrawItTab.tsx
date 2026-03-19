@@ -97,9 +97,10 @@ export default function DrawItTab({ childProfileId, tileId, onSubmit }: DrawItTa
       const path = storagePath(childProfileId, tileId, ext)
       rawUrlRef.current = await uploadToStorage('dream-inputs', path, blob, mimeType)
 
-      const base64 = await new Promise<string>(resolve => {
+      const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = ev => resolve((ev.target?.result as string).split(',')[1])
+        reader.onerror = () => reject(new Error('Failed to read image file'))
         reader.readAsDataURL(blob)
       })
       const res = await fetch('/api/describe-drawing', {
