@@ -27,7 +27,8 @@ export function getAge(dateOfBirth: string): number {
 
 export type TileType = 'mother_tree' | 'story' | 'terrain'
 export type TerrainType = 'forest' | 'land' | 'water' | 'mountain'
-export type TileState = 'locked' | 'unlocked' | 'listened' | 'completed'
+// Note: 'locked' has been retired. Tiles with no child_tile_states row are invisible.
+export type TileState = 'revealed' | 'unlocked' | 'listened' | 'completed'
 
 export interface Tile {
   id: string
@@ -39,6 +40,7 @@ export interface Tile {
   story_text: string | null
   audio_url: string | null
   alex_tip: string | null
+  alex_dream_image_url: string | null
   sensory_moment_text: string | null
   default_token_image_url: string | null
   created_at: string
@@ -53,7 +55,21 @@ export interface ChildTileState {
   completed_at: string | null
 }
 
-// Tile enriched with the child's current state — used by HexGrid and HexTile
+// Tile enriched with the child's current state + latest dream token
 export interface MappedTile extends Tile {
   childState: TileState
+  token_image_url: string | null  // from latest dream_submissions row for this child+tile
+}
+
+export interface DreamSubmission {
+  id: string
+  child_profile_id: string
+  tile_id: string
+  input_type: 'text' | 'voice' | 'drawing'
+  raw_input_url: string | null
+  transcribed_text: string | null
+  generated_image_url: string | null
+  token_image_url: string | null
+  is_shared: boolean
+  created_at: string
 }
