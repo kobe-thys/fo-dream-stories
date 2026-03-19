@@ -25,7 +25,6 @@ export default function CreateProfilePage() {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
-    // Enforce 4-profile cap at application layer
     const { count } = await supabase
       .from('child_profiles')
       .select('*', { count: 'exact', head: true })
@@ -44,9 +43,9 @@ export default function CreateProfilePage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-slate-950 px-4">
-      <h1 className="text-2xl font-bold text-white mb-2">Add a dreamer</h1>
-      <p className="text-slate-400 mb-8">Tell us about your child</p>
+    <main className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+      <h1 className="text-2xl font-bold text-foreground mb-2">Add a dreamer</h1>
+      <p className="text-muted-foreground mb-8">Tell us about your child</p>
       <form onSubmit={handleSubmit} className="space-y-5 w-full max-w-sm">
         <div className="space-y-1">
           <Label htmlFor="name">Name</Label>

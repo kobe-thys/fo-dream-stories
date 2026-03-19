@@ -31,16 +31,16 @@ export default function SelectProfilePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-slate-950">
-        <p className="text-slate-400">Loading...</p>
+      <main className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Loading...</p>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-slate-950 px-4">
-      <h1 className="text-2xl font-bold text-white mb-2">Who's exploring tonight?</h1>
-      <p className="text-slate-400 mb-10">Choose your dreamer</p>
+    <main className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+      <h1 className="text-2xl font-bold text-foreground mb-2">Who&apos;s exploring tonight?</h1>
+      <p className="text-muted-foreground mb-10">Choose your dreamer</p>
       <ProfileGrid
         profiles={profiles}
         onSelect={handleSelect}
