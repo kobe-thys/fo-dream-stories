@@ -37,7 +37,7 @@ values
    'story', 'The Syrup Tree', 2, 0, null, null, null),
 
   ('00000000-0000-0000-0000-000000000009',
-   'story', 'Dragon Mountains', 0, 2, null, null, null),
+   'story', 'Dragon Mountains', -1, 2, null, null, null),
 
   ('00000000-0000-0000-0000-000000000010',
    'story', 'Elven Forest', -2, 1, null, null, null),
