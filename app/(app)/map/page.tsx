@@ -114,9 +114,17 @@ export default function MapPage() {
 
   return (
     <main className="min-h-screen flex flex-col items-center bg-background pt-8 px-4">
-      <h1 className="text-xl font-bold text-foreground mb-1">
-        {profileName}&apos;s Dream World
-      </h1>
+      <div className="w-full max-w-lg flex items-center justify-between mb-1">
+        <h1 className="text-xl font-bold text-foreground">
+          {profileName}&apos;s Dream World
+        </h1>
+        <button
+          onClick={() => router.push('/select-profile')}
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Switch dreamer
+        </button>
+      </div>
       <p className="text-muted-foreground text-sm mb-6">Tap a tile to begin an adventure</p>
       <div className="w-full flex justify-center overflow-auto">
         <HexGrid tiles={tiles} onTileClick={handleTileClick} />

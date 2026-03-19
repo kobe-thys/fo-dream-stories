@@ -85,9 +85,9 @@
 
 /* Dark mode — warm forest night (active globally via .dark on <html>) */
 .dark {
-  --background: oklch(0.17 0.04 145);
+  --background: oklch(0.22 0.06 145);
   --foreground: oklch(0.93 0.03 85);
-  --card: oklch(0.21 0.04 140);
+  --card: oklch(0.26 0.06 140);
   --card-foreground: oklch(0.93 0.03 85);
   --popover: oklch(0.21 0.04 140);
   --popover-foreground: oklch(0.93 0.03 85);
