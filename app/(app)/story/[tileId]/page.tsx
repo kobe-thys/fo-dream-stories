@@ -13,8 +13,6 @@ export default function StoryPage({ params }: { params: { tileId: string } }) {
 
   const [tile, setTile] = useState<MappedTile | null>(null)
   const [loading, setLoading] = useState(true)
-  const [childState] = useState<'unlocked' | 'listened'>('unlocked')
-
   useEffect(() => {
     const childId = sessionStorage.getItem('activeProfileId') ?? ''
     async function load() {
