@@ -22,3 +22,38 @@ export function getAge(dateOfBirth: string): number {
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) age--
   return age
 }
+
+// ── Map types ──────────────────────────────────────────────────────────────
+
+export type TileType = 'mother_tree' | 'story' | 'terrain'
+export type TerrainType = 'forest' | 'land' | 'water' | 'mountain'
+export type TileState = 'locked' | 'unlocked' | 'listened' | 'completed'
+
+export interface Tile {
+  id: string
+  type: TileType
+  name: string
+  position_q: number
+  position_r: number
+  terrain_type: TerrainType | null
+  story_text: string | null
+  audio_url: string | null
+  alex_tip: string | null
+  sensory_moment_text: string | null
+  default_token_image_url: string | null
+  created_at: string
+}
+
+export interface ChildTileState {
+  id: string
+  child_profile_id: string
+  tile_id: string
+  state: TileState
+  listened_at: string | null
+  completed_at: string | null
+}
+
+// Tile enriched with the child's current state — used by HexGrid and HexTile
+export interface MappedTile extends Tile {
+  childState: TileState
+}
