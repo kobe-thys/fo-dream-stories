@@ -62,13 +62,13 @@ export default function CreateProfilePage() {
               <button
                 key={c} type="button"
                 onClick={() => setColor(c)}
-                className={`w-8 h-8 rounded-full transition-transform ${color === c ? 'scale-125 ring-2 ring-white' : ''}`}
+                className={`w-8 h-8 rounded-full transition-transform ${color === c ? 'scale-125 ring-2 ring-ring' : ''}`}
                 style={{ backgroundColor: c }}
               />
             ))}
           </div>
         </div>
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? 'Saving...' : 'Add dreamer'}
         </Button>
