@@ -2,6 +2,9 @@
 import { getAge } from '@/lib/types'
 
 describe('getAge', () => {
+  // Freeze clock to 2026-03-19 so tests stay correct regardless of when they run
+  beforeAll(() => { jest.useFakeTimers({ now: new Date('2026-03-19') }) })
+  afterAll(() => { jest.useRealTimers() })
   // Uses fixed dates to avoid month-overflow edge cases (e.g. December + 1 month = January next year)
   it('returns correct age when birthday has already passed this year', () => {
     // Born 2000-01-15 — if today is 2026-03-19, birthday has passed → age 26
