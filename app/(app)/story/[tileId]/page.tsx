@@ -15,22 +15,15 @@ export default function StoryPage({ params }: { params: { tileId: string } }) {
   const [loading, setLoading] = useState(true)
   useEffect(() => {
     async function load() {
-      const childId = sessionStorage.getItem('activeProfileId') ?? ''
+      const childId = sessionStorage.getItem('activeProfileId')
+      if (!childId) { router.push('/select-profile'); return }
       const supabase = createClient()
-      const { data: tileData } = await supabase
-        .from('tiles')
-        .select('*')
-        .eq('id', params.tileId)
-        .single()
+      const [{ data: tileData }, { data: stateRow }] = await Promise.all([
+        supabase.from('tiles').select('*').eq('id', params.tileId).single(),
+        supabase.from('child_tile_states').select('state').eq('child_profile_id', childId).eq('tile_id', params.tileId).single(),
+      ])
 
       if (tileData) {
-        const { data: stateRow } = await supabase
-          .from('child_tile_states')
-          .select('state')
-          .eq('child_profile_id', childId)
-          .eq('tile_id', params.tileId)
-          .single()
-
         const mappedTile: MappedTile = {
           ...(tileData as Tile),
           childState: (stateRow?.state as TileState) ?? 'unlocked',
