@@ -52,4 +52,14 @@ describe('TilePopup', () => {
     expect(screen.queryByText(/Reading mode/i)).not.toBeInTheDocument()
     expect(screen.getByText(/heart of the dream world/i)).toBeInTheDocument()
   })
+
+  it('shows alex_dream_image_url hint text in unlocked popup when image exists', () => {
+    render(<TilePopup tile={{ ...storyTile, alex_dream_image_url: 'https://example.com/img.png' }} onClose={noop} onListeningMode={noop} onReadingMode={noop} onSubmitDream={noop} onReadAgain={noop} />)
+    expect(screen.getByText(/peek at Alex/i)).toBeInTheDocument()
+  })
+
+  it('shows token image in completed popup when token_image_url is set', () => {
+    render(<TilePopup tile={{ ...storyTile, childState: 'completed', token_image_url: 'https://example.com/token.png' }} onClose={noop} onListeningMode={noop} onReadingMode={noop} onSubmitDream={noop} onReadAgain={noop} />)
+    expect(screen.getByRole('img', { name: /your dream/i })).toBeInTheDocument()
+  })
 })

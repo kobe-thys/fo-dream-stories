@@ -31,6 +31,8 @@ export default function TilePopup({
           </p>
         )}
 
+        {/* Note: revealed tiles are handled by map page (tap → unlock). They never open this popup. */}
+
         {tile.type !== 'mother_tree' && tile.childState === 'unlocked' && (
           <>
             <p className="text-slate-500 text-sm mb-4">A story awaits...</p>
