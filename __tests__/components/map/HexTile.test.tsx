@@ -12,10 +12,12 @@ const baseTile: MappedTile = {
   story_text: null,
   audio_url: null,
   alex_tip: null,
+  alex_dream_image_url: null,
   sensory_moment_text: null,
   default_token_image_url: null,
   created_at: '2026-01-01T00:00:00Z',
   childState: 'unlocked',
+  token_image_url: null,
 }
 
 describe('HexTile', () => {
@@ -24,18 +26,19 @@ describe('HexTile', () => {
     expect(screen.getByText('The Tinkle Trunk')).toBeInTheDocument()
   })
 
-  it('renders tile name for locked story tiles', () => {
-    render(<HexTile tile={{ ...baseTile, childState: 'locked' }} x={0} y={0} />)
-    expect(screen.getByText('The Tinkle Trunk')).toBeInTheDocument()
+  it('renders "?" instead of tile name for revealed story tiles', () => {
+    render(<HexTile tile={{ ...baseTile, childState: 'revealed' }} x={0} y={0} />)
+    expect(screen.queryByText('The Tinkle Trunk')).not.toBeInTheDocument()
+    expect(screen.getByText('?')).toBeInTheDocument()
   })
 
-  it('does not render name for locked terrain tiles', () => {
+  it('does not render name for revealed terrain tiles', () => {
     const terrainTile: MappedTile = {
       ...baseTile,
       type: 'terrain',
       name: 'Forest Path',
       terrain_type: 'forest',
-      childState: 'locked',
+      childState: 'revealed',
     }
     render(<HexTile tile={terrainTile} x={0} y={0} />)
     expect(screen.queryByText('Forest Path')).not.toBeInTheDocument()
@@ -58,5 +61,16 @@ describe('HexTile', () => {
     const hexEl = screen.getByText('The Tinkle Trunk').closest('[data-type]')!
     fireEvent.click(hexEl)
     expect(onClick).toHaveBeenCalledWith(baseTile)
+  })
+
+  it('renders "?" for revealed tiles', () => {
+    render(<HexTile tile={{ ...baseTile, childState: 'revealed' }} x={0} y={0} />)
+    expect(screen.getByText('?')).toBeInTheDocument()
+  })
+
+  it('applies selected scale when isSelected is true', () => {
+    const { container } = render(<HexTile tile={baseTile} x={0} y={0} isSelected={true} />)
+    const el = container.querySelector('[data-type]') as HTMLElement
+    expect(el.style.transform).toContain('scale')
   })
 })

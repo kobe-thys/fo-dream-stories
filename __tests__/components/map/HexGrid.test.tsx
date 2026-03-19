@@ -2,6 +2,11 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import HexGrid from '@/components/map/HexGrid'
 import { MappedTile } from '@/lib/types'
 
+jest.mock('react-zoom-pan-pinch', () => ({
+  TransformWrapper: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TransformComponent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
+
 function makeTile(id: string, q: number, r: number, state: MappedTile['childState'] = 'unlocked'): MappedTile {
   return {
     id,
@@ -13,10 +18,12 @@ function makeTile(id: string, q: number, r: number, state: MappedTile['childStat
     story_text: null,
     audio_url: null,
     alex_tip: null,
+    alex_dream_image_url: null,
     sensory_moment_text: null,
     default_token_image_url: null,
     created_at: '2026-01-01T00:00:00Z',
     childState: state,
+    token_image_url: null,
   }
 }
 
