@@ -17,6 +17,7 @@ jest.mock('@/lib/supabase/client', () => ({
       select: jest.fn().mockReturnThis(),
       insert: jest.fn().mockResolvedValue({ error: null }),
       upsert: jest.fn().mockResolvedValue({ error: null }),
+      update: jest.fn().mockReturnThis(),
       eq: jest.fn().mockResolvedValue({ data: [], error: null }),
       order: jest.fn().mockResolvedValue({ data: [], error: null }),
     }),
