@@ -19,14 +19,16 @@ function tileColor(tile: MappedTile): string {
 }
 
 function FloatingTilePreview({ tile }: { tile: MappedTile }) {
-  const size = 80
+  // Pointy-top hex: width = √3/2 × height  (W/H ≈ 0.866)
+  const H = 96
+  const W = Math.round(H * Math.sqrt(3) / 2)
   return (
     <div style={{
-      position: 'fixed', left: '50%', top: '62%',
+      position: 'fixed', left: '50%', top: '58%',
       transform: 'translateX(-50%)',
       zIndex: 35,
-      width: size * 1.155, height: size,
-      filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.6)) drop-shadow(0 0 12px rgba(124,58,237,0.4))',
+      width: W, height: H,
+      filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.6)) drop-shadow(0 0 14px rgba(124,58,237,0.5))',
       animation: 'floatUp 0.3s ease-out forwards',
       pointerEvents: 'none',
     }}>
@@ -36,7 +38,7 @@ function FloatingTilePreview({ tile }: { tile: MappedTile }) {
         backgroundColor: tileColor(tile),
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <span style={{ color: 'white', fontSize: 10, fontWeight: 700, textAlign: 'center', padding: '0 8px', lineHeight: 1.2 }}>
+        <span style={{ color: 'white', fontSize: 9, fontWeight: 700, textAlign: 'center', padding: '0 8px', lineHeight: 1.2 }}>
           {tile.name}
         </span>
       </div>
@@ -279,7 +281,10 @@ export default function MapPage() {
         />
       )}
 
-      <FOMascot message={`Welcome, ${profileName}! Where shall we go?`} />
+      <FOMascot
+        message={`Welcome, ${profileName}! Tap the Mother Tree to begin.`}
+        selectedTile={selectedTile}
+      />
     </main>
   )
 }
