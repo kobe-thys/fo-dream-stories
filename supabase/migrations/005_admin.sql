@@ -21,3 +21,8 @@ create policy "Admin full access to app_settings"
   );
 
 grant select, insert, update, delete on public.app_settings to authenticated;
+
+-- service_role needs DML to bypass RLS via adminClient()
+-- Without this, service_role only has REFERENCES/TRIGGER/TRUNCATE (Supabase default for
+-- tables created via SQL migrations, not via dashboard). adminClient() uses service_role.
+grant select, insert, update, delete on all tables in schema public to service_role;
