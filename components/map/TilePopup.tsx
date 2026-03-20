@@ -119,6 +119,16 @@ export default function TilePopup({
           </>
         )}
 
+        {/* Alex's dream — shown in any state when available */}
+        {tile.alex_dream_image_url && tile.childState !== 'completed' && (
+          <button
+            onClick={() => setShowAlexDream(true)}
+            className="w-full mt-3 py-2 rounded-xl border border-amber-300 text-amber-600 font-semibold text-sm hover:bg-amber-50 transition-colors"
+          >
+            ✨ See Alex&apos;s dream
+          </button>
+        )}
+
         {/* Listened — prompt dream submission */}
         {tile.childState === 'listened' && (
           <>

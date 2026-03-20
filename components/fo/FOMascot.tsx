@@ -10,13 +10,13 @@ function getContextualMessage(tile: MappedTile | null | undefined, fallback?: st
   if (!tile) return fallback ?? 'Welcome! Tap the Mother Tree to begin your first adventure.'
   if (tile.childState === 'unlocked') {
     return tile.type === 'mother_tree'
-      ? 'Welcome to the Mother Tree! Close your eyes and listen, or read along — your adventure starts here! 🌳'
-      : 'A new story awaits! Choose listening mode to close your eyes while I read, or reading mode to follow along. 📖'
+      ? 'Welcome to the Mother Tree! Close your eyes and listen — your adventure starts here! 🌳'
+      : 'A new story awaits! Choose listening mode to close your eyes while I read. 🎧'
   }
   if (tile.childState === 'listened') return 'You\'ve heard the story! Now share your dream — what did you imagine? 🌙'
   if (tile.childState === 'completed') {
     return tile.alex_dream_image_url
-      ? 'You did it! Tap "See Alex\'s dream" to find out what he imagined for this adventure! ✨'
+      ? 'Wonderful! Tap "See Alex\'s dream" to find out what he imagined! ✨'
       : 'Wonderful! Your dream has been captured. Read it again whenever you like! ⭐'
   }
   return fallback ?? 'Tap a tile to begin an adventure!'
@@ -55,8 +55,8 @@ export default function FOMascot({ message, selectedTile }: FOMascotProps) {
       <Image
         src="/fo-reading.png"
         alt="Friendly Onion"
-        width={hasPopup ? 120 : 96}
-        height={hasPopup ? 120 : 96}
+        width={hasPopup ? 120 : 160}
+        height={hasPopup ? 120 : 160}
         className="object-contain drop-shadow-lg flex-shrink-0"
         priority
       />
