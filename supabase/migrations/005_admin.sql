@@ -20,4 +20,4 @@ create policy "Admin full access to app_settings"
     exists (select 1 from public.families where id = auth.uid() and is_admin = true)
   );
 
-grant select, insert, update on public.app_settings to authenticated;
+grant select, insert, update, delete on public.app_settings to authenticated;
