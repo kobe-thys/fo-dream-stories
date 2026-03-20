@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import Image from 'next/image'
 import { MappedTile } from '@/lib/types'
 
 interface TilePopupProps {
@@ -59,11 +58,11 @@ function AlexDreamModal({ tile, onClose }: { tile: MappedTile; onClose: () => vo
             overflow: 'hidden',
           }}>
             {tile.alex_dream_image_url && (
-              <Image
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
                 src={tile.alex_dream_image_url}
                 alt="Alex's dream"
-                fill
-                className="object-cover"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             )}
           </div>

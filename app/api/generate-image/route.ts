@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
     const { error: uploadError } = await supabase.storage
       .from('dream-images')
-      .upload(path, blob, { contentType: 'image/png', upsert: false })
+      .upload(path, blob, { contentType: 'image/png', upsert: true })
     if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`)
 
     const { data } = supabase.storage.from('dream-images').getPublicUrl(path)

@@ -29,9 +29,13 @@ function tileBackground(tile: MappedTile): string {
 }
 
 function tileFilter(tile: MappedTile): string {
-  if (tile.childState === 'completed') return 'drop-shadow(0 0 6px #d97706)'
-  if (tile.childState === 'listened') return 'drop-shadow(0 0 8px #f59e0b)'
-  if (tile.type === 'mother_tree') return 'drop-shadow(0 0 6px #a78bfa)'
+  if (tile.type === 'mother_tree' && tile.childState === 'unlocked') return 'drop-shadow(0 0 6px #a78bfa)'
+  return 'none'
+}
+
+function tileAnimation(tile: MappedTile): string {
+  if (tile.childState === 'completed') return 'amberPulse 2.5s ease-in-out infinite'
+  if (tile.childState === 'listened') return 'amberPulse 1.8s ease-in-out infinite'
   return 'none'
 }
 
@@ -83,6 +87,7 @@ export default function HexTile({ tile, x, y, isSelected = false, isFlipped = fa
             clipPath: HEX_CLIP,
             backgroundColor: tileBackground(tile),
             filter: tileFilter(tile),
+            animation: tileAnimation(tile),
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -140,6 +145,12 @@ export default function HexTile({ tile, x, y, isSelected = false, isFlipped = fa
           </div>
         )}
       </div>
+      <style>{`
+        @keyframes amberPulse {
+          0%, 100% { filter: drop-shadow(0 0 4px #f59e0b) drop-shadow(0 0 8px #d97706); }
+          50% { filter: drop-shadow(0 0 12px #f59e0b) drop-shadow(0 0 20px #fbbf24); }
+        }
+      `}</style>
     </div>
   )
 }
