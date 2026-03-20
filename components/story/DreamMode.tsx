@@ -1,23 +1,15 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 
 interface DreamModeProps {
   onComplete: () => void
   minimumSeconds?: number
 }
 
-export default function DreamMode({ onComplete, minimumSeconds = 15 }: DreamModeProps) {
-  const [timerDone, setTimerDone] = useState(false)
+export default function DreamMode({ onComplete }: DreamModeProps) {
   const [showMessage, setShowMessage] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-
-  useEffect(() => {
-    timerRef.current = setTimeout(() => setTimerDone(true), minimumSeconds * 1000)
-    return () => clearTimeout(timerRef.current)
-  }, [minimumSeconds])
 
   function handleTap() {
-    if (!timerDone) return
     if (!showMessage) { setShowMessage(true); return }
     onComplete()
   }
@@ -29,8 +21,7 @@ export default function DreamMode({ onComplete, minimumSeconds = 15 }: DreamMode
       style={{
         position: 'fixed', inset: 0, backgroundColor: '#000',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        gap: 32, zIndex: 50, cursor: timerDone ? 'pointer' : 'default',
-        padding: '0 32px',
+        gap: 32, zIndex: 50, cursor: 'pointer', padding: '0 32px',
       }}
     >
       {!showMessage && (
@@ -40,14 +31,10 @@ export default function DreamMode({ onComplete, minimumSeconds = 15 }: DreamMode
             backgroundColor: 'rgba(255,255,255,0.15)',
             animation: 'pulse 2s ease-in-out infinite',
           }} />
-          <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 15, textAlign: 'center', lineHeight: 1.7, fontStyle: 'italic' }}>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, textAlign: 'center', lineHeight: 1.7, fontStyle: 'italic' }}>
             Keep your eyes closed...<br />let your imagination run wild.
           </p>
-          {timerDone && (
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center' }}>
-              Tap when you&apos;re ready ✨
-            </p>
-          )}
+          <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>Tap when you&apos;re ready ✨</p>
         </>
       )}
       {showMessage && (
