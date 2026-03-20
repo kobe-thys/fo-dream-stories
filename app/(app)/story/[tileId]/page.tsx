@@ -1,59 +1,73 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Tile, MappedTile, TileState } from '@/lib/types'
 import ListeningMode from '@/components/story/ListeningMode'
 import ReadingMode from '@/components/story/ReadingMode'
 
-export default function StoryPage({ params }: { params: { tileId: string } }) {
+export default function StoryPage() {
   const router = useRouter()
+  const { tileId } = useParams<{ tileId: string }>()
   const searchParams = useSearchParams()
   const mode = searchParams.get('mode') ?? 'reading'
 
   const [tile, setTile] = useState<MappedTile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
   useEffect(() => {
+    if (!tileId) return
     async function load() {
       const childId = sessionStorage.getItem('activeProfileId')
       if (!childId) { router.push('/select-profile'); return }
       const supabase = createClient()
-      const [{ data: tileData }, { data: stateRow }] = await Promise.all([
-        supabase.from('tiles').select('*').eq('id', params.tileId).single(),
-        supabase.from('child_tile_states').select('state').eq('child_profile_id', childId).eq('tile_id', params.tileId).single(),
+      const [{ data: tileData, error: tileErr }, { data: stateRow }] = await Promise.all([
+        supabase.from('tiles').select('*').eq('id', tileId).single(),
+        supabase.from('child_tile_states').select('state').eq('child_profile_id', childId).eq('tile_id', tileId).single(),
       ])
 
-      if (tileData) {
-        const mappedTile: MappedTile = {
-          ...(tileData as Tile),
-          childState: (stateRow?.state as TileState) ?? 'unlocked',
-          token_image_url: null,
-        }
-        setTile(mappedTile)
+      if (tileErr || !tileData) {
+        setError('Could not load this story.')
+        setLoading(false)
+        return
       }
+
+      setTile({
+        ...(tileData as Tile),
+        childState: (stateRow?.state as TileState) ?? 'unlocked',
+        token_image_url: null,
+      })
       setLoading(false)
     }
     load()
-  }, [params.tileId])
+  }, [tileId, router])
 
   async function handleComplete() {
     const childId = sessionStorage.getItem('activeProfileId') ?? ''
     if (childId && tile) {
       const supabase = createClient()
-      await supabase
-        .from('child_tile_states')
-        .upsert(
-          { child_profile_id: childId, tile_id: tile.id, state: 'listened', listened_at: new Date().toISOString() },
-          { onConflict: 'child_profile_id,tile_id' }
-        )
+      await supabase.from('child_tile_states').upsert(
+        { child_profile_id: childId, tile_id: tile.id, state: 'listened', listened_at: new Date().toISOString() },
+        { onConflict: 'child_profile_id,tile_id' }
+      )
     }
     router.push('/map')
   }
 
-  if (loading || !tile) {
+  if (loading) {
     return (
       <div style={{ position: 'fixed', inset: 0, backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <p style={{ color: 'rgba(255,255,255,0.6)' }}>Loading...</p>
+      </div>
+    )
+  }
+
+  if (error || !tile) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, backgroundColor: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+        <p style={{ color: 'rgba(255,100,100,0.9)' }}>{error ?? 'Story not found.'}</p>
+        <button onClick={() => router.push('/map')} style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>← Back to map</button>
       </div>
     )
   }

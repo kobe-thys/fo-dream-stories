@@ -9,14 +9,50 @@ import TilePopup from '@/components/map/TilePopup'
 import DreamSubmissionDrawer from '@/components/dream/DreamSubmissionDrawer'
 import FOMascot from '@/components/fo/FOMascot'
 
+const HEX_CLIP = 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)'
+
+function tileColor(tile: MappedTile): string {
+  if (tile.type === 'mother_tree') return '#7c3aed'
+  if (tile.childState === 'completed') return '#1e40af'
+  if (tile.childState === 'listened') return '#1e40af'
+  return '#1e40af'
+}
+
+function FloatingTilePreview({ tile }: { tile: MappedTile }) {
+  const size = 80
+  return (
+    <div style={{
+      position: 'fixed', left: '50%', top: '62%',
+      transform: 'translateX(-50%)',
+      zIndex: 35,
+      width: size * 1.155, height: size,
+      filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.6)) drop-shadow(0 0 12px rgba(124,58,237,0.4))',
+      animation: 'floatUp 0.3s ease-out forwards',
+      pointerEvents: 'none',
+    }}>
+      <div style={{
+        width: '100%', height: '100%',
+        clipPath: HEX_CLIP,
+        backgroundColor: tileColor(tile),
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <span style={{ color: 'white', fontSize: 10, fontWeight: 700, textAlign: 'center', padding: '0 8px', lineHeight: 1.2 }}>
+          {tile.name}
+        </span>
+      </div>
+      <style>{`@keyframes floatUp { from { transform: translateX(-50%) translateY(12px); opacity: 0 } to { transform: translateX(-50%) translateY(0); opacity: 1 } }`}</style>
+    </div>
+  )
+}
+
 function getInitialState(tile: Tile, allTiles: Tile[]): TileState | null {
   if (tile.type === 'mother_tree') return 'unlocked'
   const motherTree = allTiles.find(t => t.type === 'mother_tree')
   if (motherTree) {
     const dist = hexDistance(tile.position_q, tile.position_r, motherTree.position_q, motherTree.position_r)
-    if (dist === 1) return 'unlocked'
+    if (dist === 1) return 'revealed' // ring-1 tiles start fogged — unlock after completing Mother Tree
   }
-  return null // ring-2+ tiles get no initial state row — they are invisible
+  return null // ring-2+ tiles are invisible until revealed by completing a ring-1 tile
 }
 
 export default function MapPage() {
@@ -30,6 +66,7 @@ export default function MapPage() {
   const [drawerTile, setDrawerTile] = useState<MappedTile | null>(null)
   const [flippedTileId, setFlippedTileId] = useState<string | null>(null)
   const [sensoryTile, setSensoryTile] = useState<MappedTile | null>(null)
+  const [fogMessage, setFogMessage] = useState<string | null>(null)
 
   const loadMap = useCallback(async (cId: string) => {
     const supabase = createClient()
@@ -89,13 +126,9 @@ export default function MapPage() {
 
   async function handleTileClick(tile: MappedTile) {
     if (tile.childState === 'revealed') {
-      // Reveal the tile: move to unlocked
-      const supabase = createClient()
-      await supabase.from('child_tile_states')
-        .update({ state: 'unlocked' })
-        .eq('child_profile_id', childId)
-        .eq('tile_id', tile.id)
-      setTiles(prev => prev.map(t => t.id === tile.id ? { ...t, childState: 'unlocked' } : t))
+      // Fogged tiles can't be entered yet — show a hint
+      setFogMessage('Complete a nearby story to unlock this adventure!')
+      setTimeout(() => setFogMessage(null), 3000)
       return
     }
     if (tile.type === 'terrain') {
@@ -132,23 +165,37 @@ export default function MapPage() {
     if (unlockRows && unlockRows.length > 0) {
       const toIds = unlockRows.map((r: { to_tile_id: string }) => r.to_tile_id)
 
-      // Fetch the tile data for newly revealed tiles
-      const { data: newTileRows } = await supabase
-        .from('tiles').select('*').in('id', toIds)
+      // Check current states of target tiles — revealed → unlock, null → reveal
+      const { data: currentStates } = await supabase
+        .from('child_tile_states').select('tile_id, state')
+        .eq('child_profile_id', childId).in('tile_id', toIds)
+      const currentStateMap: Record<string, TileState> = {}
+      ;(currentStates ?? []).forEach((s: { tile_id: string; state: TileState }) => {
+        currentStateMap[s.tile_id] = s.state
+      })
 
+      const upsertRows = toIds.map((id: string) => ({
+        child_profile_id: childId,
+        tile_id: id,
+        state: currentStateMap[id] === 'revealed' ? 'unlocked' : 'revealed',
+      }))
+
+      await supabase.from('child_tile_states').upsert(upsertRows, { onConflict: 'child_profile_id,tile_id' })
+
+      // Fetch tile data for affected tiles and update local state
+      const { data: newTileRows } = await supabase.from('tiles').select('*').in('id', toIds)
       if (newTileRows) {
-        // Upsert child_tile_states for newly revealed tiles
-        await supabase.from('child_tile_states').upsert(
-          toIds.map((id: string) => ({ child_profile_id: childId, tile_id: id, state: 'revealed' })),
-          { onConflict: 'child_profile_id,tile_id' }
-        )
-        // Add new tiles to local state
         const newMapped: MappedTile[] = (newTileRows as Tile[]).map(t => ({
-          ...t, childState: 'revealed', token_image_url: null,
+          ...t,
+          childState: (upsertRows.find(r => r.tile_id === t.id)?.state ?? 'revealed') as TileState,
+          token_image_url: null,
         }))
         setTiles(prev => {
           const existingIds = new Set(prev.map(t => t.id))
-          return [...prev, ...newMapped.filter(t => !existingIds.has(t.id))]
+          return [
+            ...prev.map(t => { const u = newMapped.find(m => m.id === t.id); return u ?? t }),
+            ...newMapped.filter(t => !existingIds.has(t.id)),
+          ]
         })
       }
     }
@@ -185,14 +232,18 @@ export default function MapPage() {
       </div>
 
       {selectedTile && selectedTile.childState !== 'revealed' && (
-        <TilePopup
-          tile={selectedTile}
-          onClose={() => { setSelectedTile(null); setFlippedTileId(null) }}
-          onListeningMode={() => { router.push(`/story/${selectedTile.id}?mode=listening`); setSelectedTile(null) }}
-          onReadingMode={() => { router.push(`/story/${selectedTile.id}?mode=reading`); setSelectedTile(null) }}
-          onSubmitDream={() => { setDrawerTile(selectedTile); setSelectedTile(null) }}
-          onReadAgain={() => { router.push(`/story/${selectedTile.id}?mode=reading`); setSelectedTile(null) }}
-        />
+        <>
+          {/* Floating tile preview — hovers below the popup */}
+          <FloatingTilePreview tile={selectedTile} />
+          <TilePopup
+            tile={selectedTile}
+            onClose={() => { setSelectedTile(null); setFlippedTileId(null) }}
+            onListeningMode={() => { router.push(`/story/${selectedTile.id}?mode=listening`); setSelectedTile(null) }}
+            onReadingMode={() => { router.push(`/story/${selectedTile.id}?mode=reading`); setSelectedTile(null) }}
+            onSubmitDream={() => { setDrawerTile(selectedTile); setSelectedTile(null) }}
+            onReadAgain={() => { router.push(`/story/${selectedTile.id}?mode=reading`); setSelectedTile(null) }}
+          />
+        </>
       )}
 
       {/* Terrain sensory moment overlay */}
@@ -210,6 +261,13 @@ export default function MapPage() {
             <p className="text-slate-400 text-xs mt-3">Tap to close</p>
           </div>
         </>
+      )}
+
+      {/* Fog hint toast */}
+      {fogMessage && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-5 py-3 bg-slate-800 text-white text-sm rounded-2xl shadow-lg pointer-events-none">
+          {fogMessage}
+        </div>
       )}
 
       {drawerTile && childId && (
