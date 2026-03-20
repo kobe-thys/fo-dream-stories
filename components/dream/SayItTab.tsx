@@ -36,7 +36,8 @@ export default function SayItTab({ childProfileId, tileId, onSubmit }: SayItTabP
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
-      const recorder = new MediaRecorder(stream)
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
+      const recorder = new MediaRecorder(stream, { mimeType })
       mediaRef.current = recorder
       chunksRef.current = []
 
@@ -47,15 +48,16 @@ export default function SayItTab({ childProfileId, tileId, onSubmit }: SayItTabP
         stream.getTracks().forEach(t => t.stop())
         setRecordState('processing')
         try {
-          const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+          const blob = new Blob(chunksRef.current, { type: mimeType })
 
           // Upload raw audio to Supabase Storage (spec: raw_input_url)
-          const path = storagePath(childProfileId, tileId, 'webm')
-          rawUrlRef.current = await uploadToStorage('dream-inputs', path, blob, 'audio/webm')
+          const ext = mimeType === 'audio/mp4' ? 'm4a' : 'webm'
+          const path = storagePath(childProfileId, tileId, ext)
+          rawUrlRef.current = await uploadToStorage('dream-inputs', path, blob, mimeType)
 
           // Transcribe via Whisper
           const formData = new FormData()
-          formData.append('audio', blob, 'recording.webm')
+          formData.append('audio', blob, `recording.${ext}`)
           const res = await fetch('/api/transcribe', { method: 'POST', body: formData })
           const json = await res.json()
           if (!res.ok) throw new Error(json.error)

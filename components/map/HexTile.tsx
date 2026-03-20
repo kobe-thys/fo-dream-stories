@@ -36,6 +36,7 @@ function tileFilter(tile: MappedTile): string {
 function tileAnimation(tile: MappedTile): string {
   if (tile.childState === 'completed') return 'amberPulse 2.5s ease-in-out infinite'
   if (tile.childState === 'listened') return 'amberPulse 1.8s ease-in-out infinite'
+  if (tile.type !== 'terrain' && tile.childState === 'unlocked') return 'amberPulse 3s ease-in-out infinite'
   return 'none'
 }
 
