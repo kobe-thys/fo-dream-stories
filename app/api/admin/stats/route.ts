@@ -27,9 +27,7 @@ export async function GET() {
   const tileCounts: Record<string, { name: string; count: number }> = {}
   for (const row of topTiles ?? []) {
     const id = row.tile_id
-    const tilesVal = row.tiles as unknown as { name: string } | { name: string }[] | null
-    const tileObj = Array.isArray(tilesVal) ? tilesVal[0] : tilesVal
-    const name = tileObj?.name ?? id
+    const name = (row.tiles as unknown as { name: string } | null)?.name ?? id
     tileCounts[id] = { name, count: (tileCounts[id]?.count ?? 0) + 1 }
   }
   const topStories = Object.values(tileCounts)
