@@ -9,7 +9,7 @@ export interface ChildProfile {
 
 export interface Family {
   id: string
-  email: string
+  is_admin: boolean
   created_at: string
 }
 
@@ -72,4 +72,10 @@ export interface DreamSubmission {
   token_image_url: string | null
   is_shared: boolean
   created_at: string
+}
+
+export interface AppSettings {
+  id: 1
+  beta_cap: number
+  beta_open: boolean
 }
