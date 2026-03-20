@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
 import { MappedTile } from '@/lib/types'
 import { createClient } from '@/lib/supabase/client'
 
@@ -118,13 +117,12 @@ export default function ImageAcceptance({
       <div className="flex flex-col items-center gap-6 py-4">
         <h2 className="text-xl font-bold text-foreground">Your dream is saved! ✨</h2>
         {savedTokenUrl && (
-          <div className="relative w-64 h-64 rounded-2xl overflow-hidden">
-            <Image
+          <div className="w-64 h-64 rounded-2xl overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src={savedTokenUrl}
               alt="Your dream"
-              fill
-              className="object-cover"
-              unoptimized
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           </div>
         )}
@@ -184,13 +182,12 @@ export default function ImageAcceptance({
   return (
     <div className="flex flex-col items-center gap-4 py-4">
       {imageUrl && (
-        <div className="relative w-full max-w-sm aspect-square rounded-2xl overflow-hidden">
-          <Image
+        <div className="w-full max-w-sm aspect-square rounded-2xl overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={imageUrl}
             alt="Your dream"
-            fill
-            className="object-cover"
-            unoptimized
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         </div>
       )}

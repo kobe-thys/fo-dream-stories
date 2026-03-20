@@ -86,7 +86,7 @@ export default function HexTile({ tile, x, y, isSelected = false, isFlipped = fa
             inset: 0,
             clipPath: HEX_CLIP,
             backgroundColor: tileBackground(tile),
-            filter: tileFilter(tile),
+            filter: tileAnimation(tile) !== 'none' ? undefined : tileFilter(tile),
             animation: tileAnimation(tile),
             display: 'flex',
             alignItems: 'center',

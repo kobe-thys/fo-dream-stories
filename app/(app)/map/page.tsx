@@ -128,9 +128,26 @@ export default function MapPage() {
 
   async function handleTileClick(tile: MappedTile) {
     if (tile.childState === 'revealed') {
-      // Fogged tiles can't be entered yet — show a hint
-      setFogMessage('Complete a nearby story to unlock this adventure!')
-      setTimeout(() => setFogMessage(null), 3000)
+      const motherTree = tiles.find(t => t.type === 'mother_tree')
+      if (motherTree) {
+        const dist = hexDistance(tile.position_q, tile.position_r, motherTree.position_q, motherTree.position_r)
+        if (dist === 1 && motherTree.childState !== 'completed') {
+          setFogMessage('Complete the Mother Tree story first!')
+          setTimeout(() => setFogMessage(null), 3000)
+          return
+        }
+      }
+      // Revealed tile with prerequisite done — unlock it
+      if (childId) {
+        const supabase = createClient()
+        await supabase.from('child_tile_states').upsert(
+          { child_profile_id: childId, tile_id: tile.id, state: 'unlocked' },
+          { onConflict: 'child_profile_id,tile_id' }
+        )
+        const unlocked = { ...tile, childState: 'unlocked' as TileState }
+        setTiles(prev => prev.map(t => t.id === tile.id ? unlocked : t))
+        setSelectedTile(unlocked)
+      }
       return
     }
     if (tile.type === 'terrain') {
