@@ -21,6 +21,13 @@ export default function SignupForm() {
     if (!email) { setError('Email is required'); return }
     if (!password) { setError('Password is required'); return }
     setLoading(true)
+    const betaRes = await fetch('/api/auth/check-beta')
+    const betaJson = await betaRes.json()
+    if (!betaJson.allowed) {
+      setError(betaJson.reason)
+      setLoading(false)
+      return
+    }
     const supabase = createClient()
     const { error } = await supabase.auth.signUp({ email, password })
     setLoading(false)
