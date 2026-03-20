@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     const audio = formData.get('audio') as File | null
     if (!audio) return NextResponse.json({ error: 'No audio file' }, { status: 400 })
 
-    if (audio.size < 1000) {
+    if (audio.size < 5000) {
       return NextResponse.json({ error: 'Recording too short — please try again' }, { status: 400 })
     }
 

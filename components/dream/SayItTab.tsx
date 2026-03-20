@@ -69,7 +69,7 @@ export default function SayItTab({ childProfileId, tileId, onSubmit }: SayItTabP
         }
       }
 
-      recorder.start()
+      recorder.start(250) // timeslice ensures audio frames are flushed every 250ms
       setRecordState('recording')
       setSeconds(0)
       timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000)
