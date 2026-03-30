@@ -3,11 +3,10 @@ import { isAdmin } from '@/lib/admin'
 import Link from 'next/link'
 
 const NAV = [
-  { href: '/admin', label: 'Dashboard' },
-  { href: '/admin/tiles', label: 'Tiles' },
-  { href: '/admin/unlocks', label: 'Unlock Graph' },
+  { href: '/admin',            label: 'Dashboard' },
+  { href: '/admin/stories',    label: 'Stories' },
   { href: '/admin/moderation', label: 'Moderation' },
-  { href: '/admin/settings', label: 'Settings' },
+  { href: '/admin/settings',   label: 'Settings' },
 ]
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
