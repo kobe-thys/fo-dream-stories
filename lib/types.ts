@@ -23,26 +23,37 @@ export function getAge(dateOfBirth: string): number {
   return age
 }
 
-// ── Map types ──────────────────────────────────────────────────────────────
+// ── Story ────────────────────────────────────────────────────────────────────
 
-export type TileType = 'mother_tree' | 'story' | 'terrain'
+export interface Story {
+  id: string
+  title: string
+  story_text: string | null
+  audio_url: string | null
+  alex_tip: string | null
+  default_token_image_url: string | null
+  alex_dream_image_url: string | null
+  fo_image_url: string | null
+  created_at: string
+}
+
+// ── Map types ────────────────────────────────────────────────────────────────
+
+export type TileType = 'undefined' | 'mother_tree' | 'story' | 'terrain'
 export type TerrainType = 'forest' | 'land' | 'water' | 'mountain'
-// Note: 'locked' has been retired. Tiles with no child_tile_states row are invisible.
 export type TileState = 'revealed' | 'unlocked' | 'listened' | 'completed'
 
 export interface Tile {
   id: string
   type: TileType
-  name: string
+  name: string | null
   position_q: number
   position_r: number
   terrain_type: TerrainType | null
-  story_text: string | null
-  audio_url: string | null
-  alex_tip: string | null
-  alex_dream_image_url: string | null
+  model: string | null
+  rotation: number
+  story_id: string | null
   sensory_moment_text: string | null
-  default_token_image_url: string | null
   created_at: string
 }
 
@@ -55,10 +66,11 @@ export interface ChildTileState {
   completed_at: string | null
 }
 
-// Tile enriched with the child's current state + latest dream token
+// Tile enriched with the child's current state + latest dream token + joined story
 export interface MappedTile extends Tile {
   childState: TileState
-  token_image_url: string | null  // from latest dream_submissions row for this child+tile
+  token_image_url: string | null
+  story: Story | null
 }
 
 export interface DreamSubmission {

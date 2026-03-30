@@ -34,3 +34,15 @@ const NEIGHBOUR_DIRECTIONS = [
 export function getNeighborCoords(q: number, r: number): { q: number; r: number }[] {
   return NEIGHBOUR_DIRECTIONS.map(d => ({ q: q + d.q, r: r + d.r }))
 }
+
+// ── 3D world-space coordinates for Three.js (x, z plane; y=0 is ground) ─────
+// Spacing matches Kenney Hexagon Kit GLB scale.
+export const HEX_X_SPACING = 1.732  // ≈ √3
+export const HEX_Z_SPACING = 1.5
+
+export function axialToWorld(q: number, r: number): { x: number; z: number } {
+  return {
+    x: HEX_X_SPACING * (q + r / 2),
+    z: HEX_Z_SPACING * r,
+  }
+}
