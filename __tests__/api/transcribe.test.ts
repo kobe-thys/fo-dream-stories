@@ -18,7 +18,7 @@ import { POST } from '@/app/api/transcribe/route'
 describe('POST /api/transcribe', () => {
   it('returns transcribed text', async () => {
     const formData = new FormData()
-    formData.append('audio', new Blob(['audio data'], { type: 'audio/webm' }), 'audio.webm')
+    formData.append('audio', new Blob([new Uint8Array(6000)], { type: 'audio/webm' }), 'audio.webm')
     const request = new Request('http://localhost/api/transcribe', {
       method: 'POST',
       body: formData,

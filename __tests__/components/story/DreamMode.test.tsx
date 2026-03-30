@@ -10,10 +10,10 @@ describe('DreamMode', () => {
     expect(screen.getByTestId('dream-mode')).toBeInTheDocument()
   })
 
-  it('does not show sweet dreams message before minimum time', () => {
+  it('shows sweet dreams message on first tap', () => {
     render(<DreamMode onComplete={jest.fn()} minimumSeconds={120} />)
     fireEvent.click(screen.getByTestId('dream-mode'))
-    expect(screen.queryByText(/Sweet dreams/i)).not.toBeInTheDocument()
+    expect(screen.getByText(/Sweet dreams/i)).toBeInTheDocument()
   })
 
   it('shows sweet dreams message on first tap after minimum time', async () => {

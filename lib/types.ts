@@ -34,7 +34,7 @@ export interface Story {
   default_token_image_url: string | null
   alex_dream_image_url: string | null
   fo_image_url: string | null
-  created_at: string
+  created_at?: string
 }
 
 // ── Map types ────────────────────────────────────────────────────────────────

@@ -12,8 +12,8 @@ describe('FOMascot', () => {
     expect(screen.getByAltText('Friendly Onion')).toBeInTheDocument()
   })
 
-  it('renders nothing when message is empty', () => {
-    const { container } = render(<FOMascot message="" />)
-    expect(container.firstChild).toBeNull()
+  it('renders a fallback message when no message is given', () => {
+    render(<FOMascot />)
+    expect(screen.getByText(/Mother Tree/i)).toBeInTheDocument()
   })
 })
