@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Tile, MappedTile, TileState } from '@/lib/types'
+import { Tile, MappedTile, Story, TileState } from '@/lib/types'
 import ListeningMode from '@/components/story/ListeningMode'
 import ReadingMode from '@/components/story/ReadingMode'
 
@@ -23,7 +23,7 @@ export default function StoryPage() {
       if (!childId) { router.push('/select-profile'); return }
       const supabase = createClient()
       const [{ data: tileData, error: tileErr }, { data: stateRow }] = await Promise.all([
-        supabase.from('tiles').select('*').eq('id', tileId).single(),
+        supabase.from('tiles').select('*, story:stories(*)').eq('id', tileId).single(),
         supabase.from('child_tile_states').select('state').eq('child_profile_id', childId).eq('tile_id', tileId).single(),
       ])
 
@@ -33,10 +33,12 @@ export default function StoryPage() {
         return
       }
 
+      const td = tileData as Tile & { story: Story | null }
       setTile({
-        ...(tileData as Tile),
+        ...td,
         childState: (stateRow?.state as TileState) ?? 'unlocked',
         token_image_url: null,
+        story: td.story ?? null,
       })
       setLoading(false)
     }

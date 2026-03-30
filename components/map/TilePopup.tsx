@@ -57,10 +57,10 @@ function AlexDreamModal({ tile, onClose }: { tile: MappedTile; onClose: () => vo
             transform: 'rotateY(180deg)',
             overflow: 'hidden',
           }}>
-            {tile.alex_dream_image_url && (
+            {tile.story?.alex_dream_image_url && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={tile.alex_dream_image_url}
+                src={tile.story?.alex_dream_image_url}
                 alt="Alex's dream"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
@@ -74,7 +74,7 @@ function AlexDreamModal({ tile, onClose }: { tile: MappedTile; onClose: () => vo
       ) : (
         <div style={{ textAlign: 'center', maxWidth: 280, padding: '0 16px' }}>
           <p style={{ color: '#fbbf24', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Alex&apos;s Dream</p>
-          <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, lineHeight: 1.6 }}>{tile.alex_tip}</p>
+          <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, lineHeight: 1.6 }}>{tile.story?.alex_tip}</p>
         </div>
       )}
 
@@ -119,7 +119,7 @@ export default function TilePopup({
         )}
 
         {/* Alex's dream — shown in any state when available */}
-        {tile.alex_dream_image_url && tile.childState !== 'completed' && (
+        {tile.story?.alex_dream_image_url && tile.childState !== 'completed' && (
           <button
             onClick={() => setShowAlexDream(true)}
             className="w-full mt-3 py-2 rounded-xl border border-amber-300 text-amber-600 font-semibold text-sm hover:bg-amber-50 transition-colors"
@@ -152,7 +152,7 @@ export default function TilePopup({
                 className="w-full rounded-xl mb-3 object-cover aspect-square"
               />
             )}
-            {tile.alex_dream_image_url && (
+            {tile.story?.alex_dream_image_url && (
               <button
                 onClick={() => setShowAlexDream(true)}
                 className="w-full py-3 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 transition-colors mb-2"
@@ -160,10 +160,10 @@ export default function TilePopup({
                 ✨ See Alex&apos;s dream
               </button>
             )}
-            {tile.alex_tip && !tile.alex_dream_image_url && (
+            {tile.story?.alex_tip && !tile.story?.alex_dream_image_url && (
               <div className="bg-amber-50 rounded-xl p-3 mb-3">
                 <p className="text-amber-800 text-xs font-semibold mb-1">Alex&apos;s Dream</p>
-                <p className="text-amber-900 text-sm leading-snug">{tile.alex_tip}</p>
+                <p className="text-amber-900 text-sm leading-snug">{tile.story?.alex_tip}</p>
               </div>
             )}
             <button

@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import { MappedTile } from '@/lib/types'
 
+
 interface FOMascotProps {
   message?: string
   selectedTile?: MappedTile | null
@@ -15,7 +16,7 @@ function getContextualMessage(tile: MappedTile | null | undefined, fallback?: st
   }
   if (tile.childState === 'listened') return 'You\'ve heard the story! Now share your dream — what did you imagine? 🌙'
   if (tile.childState === 'completed') {
-    return tile.alex_dream_image_url
+    return tile.story?.alex_dream_image_url
       ? 'Wonderful! Tap "See Alex\'s dream" to find out what he imagined! ✨'
       : 'Wonderful! Your dream has been captured. Read it again whenever you like! ⭐'
   }
@@ -51,15 +52,26 @@ export default function FOMascot({ message, selectedTile }: FOMascotProps) {
         />
       </div>
 
-      {/* FO image */}
-      <Image
-        src="/fo-reading.png"
-        alt="Friendly Onion"
-        width={hasPopup ? 120 : 160}
-        height={hasPopup ? 120 : 160}
-        className="object-contain drop-shadow-lg flex-shrink-0"
-        priority
-      />
+      {/* FO image — story-specific when fo_image_url is set, fallback to default */}
+      {selectedTile?.story?.fo_image_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={selectedTile.story.fo_image_url}
+          alt="Friendly Onion"
+          width={hasPopup ? 120 : 160}
+          height={hasPopup ? 120 : 160}
+          className="object-contain drop-shadow-lg flex-shrink-0"
+        />
+      ) : (
+        <Image
+          src="/fo-reading.png"
+          alt="Friendly Onion"
+          width={hasPopup ? 120 : 160}
+          height={hasPopup ? 120 : 160}
+          className="object-contain drop-shadow-lg flex-shrink-0"
+          priority
+        />
+      )}
     </div>
   )
 }

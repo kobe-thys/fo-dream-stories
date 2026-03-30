@@ -107,7 +107,7 @@ export default function ImageAcceptance({
   }
 
   async function handleSkip() {
-    const tokenUrl = tile.default_token_image_url ?? imageUrl ?? ''
+    const tokenUrl = tile.story?.default_token_image_url ?? imageUrl ?? ''
     await saveDream(tokenUrl)
   }
 
@@ -126,10 +126,10 @@ export default function ImageAcceptance({
             />
           </div>
         )}
-        {tile.alex_tip && (
+        {tile.story?.alex_tip && (
           <div className="bg-muted rounded-2xl p-4 max-w-sm">
             <p className="text-sm text-foreground font-medium">Alex says:</p>
-            <p className="text-sm text-muted-foreground mt-1">{tile.alex_tip}</p>
+            <p className="text-sm text-muted-foreground mt-1">{tile.story.alex_tip}</p>
           </div>
         )}
         <button

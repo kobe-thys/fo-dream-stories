@@ -17,10 +17,10 @@ export default function ReadingMode({ tile, onComplete }: ReadingModeProps) {
 
   return (
     <main className="min-h-screen bg-background flex flex-col px-6 pt-12 pb-24 max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold text-foreground mb-6">{tile.name}</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">{tile.name ?? ''}</h1>
       <div className="flex-1 overflow-y-auto">
         <p className="text-foreground text-lg leading-relaxed">
-          {tile.story_text ?? 'Story coming soon — check back after the admin has added content.'}
+          {tile.story?.story_text ?? 'Story coming soon — check back after the admin has added content.'}
         </p>
       </div>
       <button
