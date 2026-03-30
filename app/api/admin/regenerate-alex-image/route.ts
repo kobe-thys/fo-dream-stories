@@ -7,8 +7,8 @@ const ALEX_STYLE = "A child's dream illustration, watercolour and ink, soft magi
 export async function POST(request: NextRequest) {
   if (!await isAdmin()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  const { tileId, alexTip } = await request.json()
-  if (!tileId || !alexTip) return NextResponse.json({ error: 'tileId and alexTip required' }, { status: 400 })
+  const { storyId, alexTip } = await request.json()
+  if (!storyId || !alexTip) return NextResponse.json({ error: 'storyId and alexTip required' }, { status: 400 })
 
   const prompt = `${alexTip}. ${ALEX_STYLE}`
   const result = await openai.images.generate({
@@ -20,11 +20,10 @@ export async function POST(request: NextRequest) {
   const openAiUrl = result.data?.[0]?.url
   if (!openAiUrl) return NextResponse.json({ error: 'No image returned' }, { status: 500 })
 
-  // Fetch and store in Supabase
   const imageResponse = await fetch(openAiUrl)
   const buffer = await imageResponse.arrayBuffer()
   const db = adminClient()
-  const path = `alex-dreams/${tileId}/${crypto.randomUUID()}.png`
+  const path = `alex-dreams/stories/${storyId}/${crypto.randomUUID()}.png`
   const { error: uploadError } = await db.storage
     .from('dream-images')
     .upload(path, new Blob([buffer], { type: 'image/png' }), { contentType: 'image/png', upsert: false })
@@ -32,11 +31,10 @@ export async function POST(request: NextRequest) {
 
   const { data } = db.storage.from('dream-images').getPublicUrl(path)
 
-  // Update the tile
   const { error: updateError } = await db
-    .from('tiles')
+    .from('stories')
     .update({ alex_dream_image_url: data.publicUrl })
-    .eq('id', tileId)
+    .eq('id', storyId)
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
 
   return NextResponse.json({ imageUrl: data.publicUrl })
