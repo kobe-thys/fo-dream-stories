@@ -15,6 +15,7 @@ interface DreamerHexTileProps {
 function applyStateToMaterial(
   mat: THREE.MeshStandardMaterial,
   origColor: THREE.Color,
+  origMap: THREE.Texture | null,
   tile: MappedTile,
   t: number
 ) {
@@ -24,9 +25,17 @@ function applyStateToMaterial(
   mat.emissiveIntensity = 0
 
   if (tile.childState === 'grey') {
-    // Visible but unexplored — slightly darker than full colour, textures still readable
-    mat.color.set(0xbbbbbb)
+    // Remove texture so the flat grey colour is solid, not a tinted texture
+    mat.map = null
+    mat.color.set(0x888888)
+    mat.needsUpdate = true
     return
+  }
+
+  // Restore texture for revealed / completed
+  if (mat.map !== origMap) {
+    mat.map = origMap
+    mat.needsUpdate = true
   }
 
   if (tile.childState === 'completed') {
@@ -49,10 +58,11 @@ export default function DreamerHexTile({ tile, isSelected, onClick }: DreamerHex
   const { x, z } = axialToWorld(tile.position_q, tile.position_r)
   const targetY = isSelected ? 0.5 : 0
 
-  // Clone scene once per tile; also capture each material's original colour
-  const { clonedScene, originalColors } = useMemo(() => {
+  // Clone scene once per tile; capture each material's original colour AND texture
+  const { clonedScene, originalColors, originalMaps } = useMemo(() => {
     const clone = scene.clone(true)
     const origColors = new Map<THREE.MeshStandardMaterial, THREE.Color>()
+    const origMaps = new Map<THREE.MeshStandardMaterial, THREE.Texture | null>()
     clone.traverse(child => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh
@@ -60,16 +70,18 @@ export default function DreamerHexTile({ tile, isSelected, onClick }: DreamerHex
           mesh.material = mesh.material.map(m => {
             const c = (m as THREE.MeshStandardMaterial).clone()
             origColors.set(c, c.color.clone())
+            origMaps.set(c, c.map)
             return c
           })
         } else {
           const c = (mesh.material as THREE.MeshStandardMaterial).clone()
           origColors.set(c, c.color.clone())
+          origMaps.set(c, c.map)
           mesh.material = c
         }
       }
     })
-    return { clonedScene: clone, originalColors: origColors }
+    return { clonedScene: clone, originalColors: origColors, originalMaps: origMaps }
   }, [scene])
 
   useFrame((_, delta) => {
@@ -90,8 +102,10 @@ export default function DreamerHexTile({ tile, isSelected, onClick }: DreamerHex
         const mesh = child as THREE.Mesh
         const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
         for (const mat of materials) {
-          const orig = originalColors.get(mat as THREE.MeshStandardMaterial) ?? new THREE.Color(1, 1, 1)
-          applyStateToMaterial(mat as THREE.MeshStandardMaterial, orig, tile, timeRef.current)
+          const m = mat as THREE.MeshStandardMaterial
+          const orig = originalColors.get(m) ?? new THREE.Color(1, 1, 1)
+          const origMap = originalMaps.get(m) ?? null
+          applyStateToMaterial(m, orig, origMap, tile, timeRef.current)
         }
       }
     })

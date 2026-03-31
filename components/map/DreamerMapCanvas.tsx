@@ -23,7 +23,7 @@ export default function DreamerMapCanvas({ tiles, selectedTileId, onTileClick }:
     <div style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}>
       <Canvas
         shadows
-        camera={{ position: [mx, 12, mz + 22], fov: 50 }}
+        camera={{ position: [mx, 18, mz + 18], fov: 50 }}
         onPointerMissed={() => onTileClick(null)}
       >
         <Suspense fallback={null}>
