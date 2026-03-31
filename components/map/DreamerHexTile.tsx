@@ -12,21 +12,26 @@ interface DreamerHexTileProps {
   onClick: (tile: MappedTile) => void
 }
 
-function applyStateToMaterial(mat: THREE.MeshStandardMaterial, tile: MappedTile, t: number) {
+function applyStateToMaterial(
+  mat: THREE.MeshStandardMaterial,
+  origColor: THREE.Color,
+  tile: MappedTile,
+  t: number
+) {
   mat.transparent = true
 
   if (tile.childState === 'revealed') {
-    // Fogged: original colours visible but ghostly
-    mat.color.set(0xffffff)
-    mat.opacity = 0.35
+    // Tile is mostly hidden under the cloud puff — show a faint grey hint
+    mat.color.set(0x999999)
+    mat.opacity = 0.15
     mat.emissive.set(0x000000)
     mat.emissiveIntensity = 0
     return
   }
 
   if (tile.childState === 'unlocked' && tile.type !== 'terrain') {
-    // Story tile unlocked but not yet listened: greyscale
-    const lum = mat.color.r * 0.299 + mat.color.g * 0.587 + mat.color.b * 0.114
+    // Story tile unlocked but not yet listened: greyscale from original colour
+    const lum = origColor.r * 0.299 + origColor.g * 0.587 + origColor.b * 0.114
     mat.color.set(new THREE.Color(lum, lum, lum))
     mat.opacity = 1
     mat.emissive.set(0x000000)
@@ -35,7 +40,7 @@ function applyStateToMaterial(mat: THREE.MeshStandardMaterial, tile: MappedTile,
   }
 
   if (tile.childState === 'listened') {
-    mat.color.set(0xffffff)
+    mat.color.copy(origColor)
     mat.opacity = 1
     mat.emissive.set(0xf59e0b)
     mat.emissiveIntensity = 0.1 + 0.05 * Math.sin(t * 2)
@@ -43,15 +48,15 @@ function applyStateToMaterial(mat: THREE.MeshStandardMaterial, tile: MappedTile,
   }
 
   if (tile.childState === 'completed') {
-    mat.color.set(0xffffff)
+    mat.color.copy(origColor)
     mat.opacity = 1
     mat.emissive.set(0xf59e0b)
     mat.emissiveIntensity = 0.2 + 0.15 * Math.sin(t * 2)
     return
   }
 
-  // terrain unlocked or any other state: full colour
-  mat.color.set(0xffffff)
+  // terrain unlocked or any other state: restore original colour
+  mat.color.copy(origColor)
   mat.opacity = 1
   mat.emissive.set(0x000000)
   mat.emissiveIntensity = 0
@@ -66,20 +71,27 @@ export default function DreamerHexTile({ tile, isSelected, onClick }: DreamerHex
   const { x, z } = axialToWorld(tile.position_q, tile.position_r)
   const targetY = isSelected ? 0.5 : 0
 
-  // Clone scene once per tile to avoid mutating the shared GLB cache
-  const clonedScene = useMemo(() => {
+  // Clone scene once per tile; also capture each material's original colour
+  const { clonedScene, originalColors } = useMemo(() => {
     const clone = scene.clone(true)
+    const origColors = new Map<THREE.MeshStandardMaterial, THREE.Color>()
     clone.traverse(child => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh
         if (Array.isArray(mesh.material)) {
-          mesh.material = mesh.material.map(m => (m as THREE.MeshStandardMaterial).clone())
+          mesh.material = mesh.material.map(m => {
+            const c = (m as THREE.MeshStandardMaterial).clone()
+            origColors.set(c, c.color.clone())
+            return c
+          })
         } else {
-          mesh.material = (mesh.material as THREE.MeshStandardMaterial).clone()
+          const c = (mesh.material as THREE.MeshStandardMaterial).clone()
+          origColors.set(c, c.color.clone())
+          mesh.material = c
         }
       }
     })
-    return clone
+    return { clonedScene: clone, originalColors: origColors }
   }, [scene])
 
   useFrame((_, delta) => {
@@ -100,7 +112,8 @@ export default function DreamerHexTile({ tile, isSelected, onClick }: DreamerHex
         const mesh = child as THREE.Mesh
         const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
         for (const mat of materials) {
-          applyStateToMaterial(mat as THREE.MeshStandardMaterial, tile, timeRef.current)
+          const orig = originalColors.get(mat as THREE.MeshStandardMaterial) ?? new THREE.Color(1, 1, 1)
+          applyStateToMaterial(mat as THREE.MeshStandardMaterial, orig, tile, timeRef.current)
         }
       }
     })
@@ -117,6 +130,24 @@ export default function DreamerHexTile({ tile, isSelected, onClick }: DreamerHex
       onClick={e => { e.stopPropagation(); onClick(tile) }}
     >
       <primitive object={clonedScene} />
+
+      {/* Cloud puff for fogged/revealed tiles */}
+      {tile.childState === 'revealed' && (
+        <group position={[0, 1.0, 0]}>
+          <mesh position={[0, 0, 0]}>
+            <sphereGeometry args={[0.42, 8, 6]} />
+            <meshStandardMaterial color="#c8dde8" transparent opacity={0.82} depthWrite={false} />
+          </mesh>
+          <mesh position={[0.36, 0.1, 0]}>
+            <sphereGeometry args={[0.32, 8, 6]} />
+            <meshStandardMaterial color="#d4eaf2" transparent opacity={0.78} depthWrite={false} />
+          </mesh>
+          <mesh position={[-0.3, 0.08, 0.12]}>
+            <sphereGeometry args={[0.3, 8, 6]} />
+            <meshStandardMaterial color="#cce3ee" transparent opacity={0.75} depthWrite={false} />
+          </mesh>
+        </group>
+      )}
 
       {/* Selection ring — hexagonal ring mesh under the tile */}
       {isSelected && (
