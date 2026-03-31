@@ -1,4 +1,3 @@
-import Image from 'next/image'
 import { MappedTile } from '@/lib/types'
 
 
@@ -63,13 +62,13 @@ export default function FOMascot({ message, selectedTile }: FOMascotProps) {
           className="object-contain drop-shadow-lg flex-shrink-0"
         />
       ) : (
-        <Image
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
           src="/fo-reading.png"
           alt="Friendly Onion"
           width={hasPopup ? 120 : 160}
           height={hasPopup ? 120 : 160}
           className="object-contain drop-shadow-lg flex-shrink-0"
-          priority
         />
       )}
     </div>

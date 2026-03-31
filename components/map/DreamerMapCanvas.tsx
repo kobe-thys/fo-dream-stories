@@ -38,7 +38,7 @@ export default function DreamerMapCanvas({ tiles, selectedTileId, onTileClick }:
           />
 
           {/* Environment for ambient reflections */}
-          <Environment preset="forest" />
+          <Environment preset="sunset" />
 
           {/* Controls: pan + zoom only, no rotation */}
           <MapControls
