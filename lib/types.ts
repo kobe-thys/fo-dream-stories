@@ -41,7 +41,7 @@ export interface Story {
 
 export type TileType = 'undefined' | 'mother_tree' | 'story' | 'terrain'
 export type TerrainType = 'forest' | 'land' | 'water' | 'mountain'
-export type TileState = 'revealed' | 'unlocked' | 'listened' | 'completed'
+export type TileState = 'grey' | 'revealed' | 'completed'
 
 export interface Tile {
   id: string

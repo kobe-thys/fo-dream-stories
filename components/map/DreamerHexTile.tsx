@@ -18,48 +18,26 @@ function applyStateToMaterial(
   tile: MappedTile,
   t: number
 ) {
-  mat.transparent = true
+  mat.transparent = false
+  mat.opacity = 1
+  mat.emissive.set(0x000000)
+  mat.emissiveIntensity = 0
 
-  if (tile.childState === 'revealed') {
-    // Locked story tile: grey
-    mat.color.set(0x888888)
-    mat.opacity = 0.9
-    mat.emissive.set(0x000000)
-    mat.emissiveIntensity = 0
-    return
-  }
-
-  if (tile.childState === 'unlocked' && tile.type !== 'terrain') {
-    // Story tile unlocked but not yet listened: grey tint (origColor is white for
-    // textured Kenney materials so luminance-based desaturation gives full colour)
-    mat.color.set(0x666666)
-    mat.opacity = 1
-    mat.emissive.set(0x000000)
-    mat.emissiveIntensity = 0
-    return
-  }
-
-  if (tile.childState === 'listened') {
-    mat.color.copy(origColor)
-    mat.opacity = 1
-    mat.emissive.set(0xf59e0b)
-    mat.emissiveIntensity = 0.1 + 0.05 * Math.sin(t * 2)
+  if (tile.childState === 'grey') {
+    // Visible but unexplored — slightly darker than full colour, textures still readable
+    mat.color.set(0xbbbbbb)
     return
   }
 
   if (tile.childState === 'completed') {
     mat.color.copy(origColor)
-    mat.opacity = 1
     mat.emissive.set(0xf59e0b)
     mat.emissiveIntensity = 0.2 + 0.15 * Math.sin(t * 2)
     return
   }
 
-  // terrain unlocked or any other state: restore original colour
+  // revealed — full original colour
   mat.color.copy(origColor)
-  mat.opacity = 1
-  mat.emissive.set(0x000000)
-  mat.emissiveIntensity = 0
 }
 
 export default function DreamerHexTile({ tile, isSelected, onClick }: DreamerHexTileProps) {

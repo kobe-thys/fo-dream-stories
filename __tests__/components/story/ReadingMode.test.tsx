@@ -8,7 +8,7 @@ const tile: MappedTile = {
   model: null, rotation: 0, story_id: 'story-1',
   sensory_moment_text: null,
   created_at: '2026-01-01T00:00:00Z',
-  childState: 'unlocked', token_image_url: null,
+  childState: 'grey', token_image_url: null,
   story: {
     id: 'story-1', title: 'Raindrop Castle',
     story_text: 'High above the clouds lived a castle made of raindrops.',

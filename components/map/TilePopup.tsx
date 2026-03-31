@@ -1,5 +1,4 @@
 'use client'
-import { useState } from 'react'
 import { MappedTile } from '@/lib/types'
 
 interface TilePopupProps {
@@ -11,183 +10,153 @@ interface TilePopupProps {
   onReadAgain: () => void
 }
 
-const HEX_CLIP = 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)'
-
-function AlexDreamModal({ tile, onClose }: { tile: MappedTile; onClose: () => void }) {
-  const [flipped, setFlipped] = useState(false)
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.92)',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        zIndex: 60, gap: 24,
-      }}
-    >
-      {/* Large flippable hex */}
-      <div
-        onClick={e => { e.stopPropagation(); setFlipped(f => !f) }}
-        style={{ perspective: 800, cursor: 'pointer' }}
-      >
-        <div style={{
-          width: 190, height: 220,
-          position: 'relative',
-          transformStyle: 'preserve-3d',
-          transition: 'transform 0.7s ease',
-          transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-        }}>
-          {/* Front — story tile */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            clipPath: HEX_CLIP,
-            backgroundColor: tile.type === 'mother_tree' ? '#7c3aed' : '#1e40af',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            backfaceVisibility: 'hidden',
-          }}>
-            <span style={{ color: 'white', fontSize: 13, fontWeight: 700, textAlign: 'center', padding: '0 12px' }}>
-              {tile.name}
-            </span>
-          </div>
-          {/* Back — Alex's dream image */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            clipPath: HEX_CLIP,
-            backgroundColor: '#1e1b4b',
-            backfaceVisibility: 'hidden',
-            transform: 'rotateY(180deg)',
-            overflow: 'hidden',
-          }}>
-            {tile.story?.alex_dream_image_url && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={tile.story?.alex_dream_image_url}
-                alt="Alex's dream"
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            )}
-          </div>
-        </div>
-      </div>
-
-      {!flipped ? (
-        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>Tap the tile to reveal Alex&apos;s dream ✨</p>
-      ) : (
-        <div style={{ textAlign: 'center', maxWidth: 280, padding: '0 16px' }}>
-          <p style={{ color: '#fbbf24', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Alex&apos;s Dream</p>
-          <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, lineHeight: 1.6 }}>{tile.story?.alex_tip}</p>
-        </div>
-      )}
-
-      <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>Tap anywhere to close</p>
-    </div>
-  )
+function getFOMessage(tile: MappedTile): string {
+  if (tile.type === 'terrain') {
+    return "I love this landscape! No story here though — keep searching for the next adventure!"
+  }
+  if (tile.childState === 'grey') {
+    return "I know this story well. I helped write it. Ready to begin your adventure?"
+  }
+  if (tile.childState === 'revealed') {
+    return "You've heard the story! What did you find in there? Tell us your dream!"
+  }
+  // completed
+  return "Your dream is captured on the map! You can listen again or share your adventure."
 }
 
+const foImg = (foImageUrl: string | null | undefined) =>
+  foImageUrl ?? '/fo-reading.png'
+
 export default function TilePopup({
-  tile, onClose, onListeningMode, onReadingMode, onSubmitDream, onReadAgain
+  tile, onClose, onListeningMode, onReadingMode, onSubmitDream, onReadAgain,
 }: TilePopupProps) {
-  const [showAlexDream, setShowAlexDream] = useState(false)
+  const isTerrain = tile.type === 'terrain'
+  const foMessage = getFOMessage(tile)
+  const foSrc = isTerrain ? '/fo-reading.png' : foImg(tile.story?.fo_image_url)
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Invisible backdrop to close on outside click */}
       <div data-testid="popup-backdrop" onClick={onClose} className="fixed inset-0 z-30" />
 
-      {/* Popup */}
-      <div className="fixed right-4 top-24 z-40 w-72 bg-white rounded-2xl shadow-2xl p-5">
-        <h2 className="text-slate-800 font-bold text-lg mb-1">{tile.name}</h2>
+      {/* Right panel */}
+      <div className="fixed right-4 top-20 z-40 w-72 bg-white rounded-2xl shadow-2xl overflow-hidden">
 
-        {/* Unlocked — show story mode buttons (not for terrain tiles) */}
-        {tile.childState === 'unlocked' && tile.type !== 'terrain' && (
-          <>
-            <p className="text-slate-500 text-sm mb-4">A story awaits...</p>
-            <div className="flex flex-col gap-2">
+        {/* FO + speech bubble */}
+        <div className="bg-indigo-50 flex flex-col items-center pt-4 pb-3 px-4 gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={foSrc} alt="FO" width={80} height={80} className="object-contain drop-shadow" />
+          {/* Speech bubble */}
+          <div className="relative bg-white rounded-xl px-3 py-2 shadow-sm text-slate-700 text-xs leading-snug text-center">
+            {foMessage}
+            {/* Tail pointing up toward FO */}
+            <span
+              aria-hidden="true"
+              className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0"
+              style={{
+                borderLeft: '7px solid transparent',
+                borderRight: '7px solid transparent',
+                borderBottom: '8px solid white',
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Tile name */}
+        <div className="px-4 pt-3 pb-1">
+          <h2 className="font-bold text-slate-800 text-sm">{tile.name ?? (isTerrain ? 'Terrain' : 'Unknown')}</h2>
+          {isTerrain && tile.sensory_moment_text && (
+            <p className="text-slate-500 text-xs mt-1 leading-snug">{tile.sensory_moment_text}</p>
+          )}
+        </div>
+
+        {/* Action buttons */}
+        <div className="px-4 pb-4 pt-2 flex flex-col gap-2">
+
+          {/* Story grey → listen + read */}
+          {!isTerrain && tile.childState === 'grey' && (
+            <>
               <button
                 onClick={onListeningMode}
-                className="w-full py-3 rounded-xl bg-violet-600 text-white font-semibold text-sm hover:bg-violet-700 transition-colors"
+                className="w-full py-2.5 rounded-xl bg-violet-600 text-white font-semibold text-sm hover:bg-violet-700 transition-colors"
               >
-                🎧 Listening mode
+                🎧 Listen
               </button>
               <button
                 onClick={onReadingMode}
-                className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-colors"
+                className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-colors"
               >
-                📖 Reading mode
+                📖 Read
               </button>
-            </div>
-          </>
-        )}
+            </>
+          )}
 
-        {/* Alex's dream — shown in any state when available */}
-        {tile.story?.alex_dream_image_url && tile.childState !== 'completed' && (
-          <button
-            onClick={() => setShowAlexDream(true)}
-            className="w-full mt-3 py-2 rounded-xl border border-amber-300 text-amber-600 font-semibold text-sm hover:bg-amber-50 transition-colors"
-          >
-            ✨ See Alex&apos;s dream
-          </button>
-        )}
-
-        {/* Listened — prompt dream submission */}
-        {tile.childState === 'listened' && (
-          <>
-            <p className="text-amber-600 text-sm mb-4 animate-pulse">How did your adventure end?</p>
-            <button
-              onClick={onSubmitDream}
-              className="w-full py-3 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 transition-colors"
-            >
-              Tell us your dream
-            </button>
-          </>
-        )}
-
-        {/* Completed — show token, alex tip, read again, alex dream reveal */}
-        {tile.childState === 'completed' && (
-          <>
-            {tile.token_image_url && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={tile.token_image_url}
-                alt="Your dream"
-                className="w-full rounded-xl mb-3 object-cover aspect-square"
-              />
-            )}
-            {tile.story?.alex_dream_image_url && (
+          {/* Story revealed → listen again + read again + submit */}
+          {!isTerrain && tile.childState === 'revealed' && (
+            <>
               <button
-                onClick={() => setShowAlexDream(true)}
-                className="w-full py-3 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 transition-colors mb-2"
+                onClick={onListeningMode}
+                className="w-full py-2.5 rounded-xl bg-violet-600 text-white font-semibold text-sm hover:bg-violet-700 transition-colors"
               >
-                ✨ See Alex&apos;s dream
+                🎧 Listen again
               </button>
-            )}
-            {tile.story?.alex_tip && !tile.story?.alex_dream_image_url && (
-              <div className="bg-amber-50 rounded-xl p-3 mb-3">
-                <p className="text-amber-800 text-xs font-semibold mb-1">Alex&apos;s Dream</p>
-                <p className="text-amber-900 text-sm leading-snug">{tile.story?.alex_tip}</p>
-              </div>
-            )}
-            <button
-              onClick={onReadAgain}
-              className="w-full py-3 rounded-xl bg-slate-100 text-slate-700 font-semibold text-sm hover:bg-slate-200 transition-colors"
-            >
-              Read it again
-            </button>
-          </>
-        )}
+              <button
+                onClick={onReadingMode}
+                className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-colors"
+              >
+                📖 Read again
+              </button>
+              <button
+                onClick={onSubmitDream}
+                className="w-full py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 transition-colors"
+              >
+                ✨ Submit my dream
+              </button>
+            </>
+          )}
 
-        {/* Close button */}
+          {/* Story completed → listen/read again + token + alex tip */}
+          {!isTerrain && tile.childState === 'completed' && (
+            <>
+              {tile.token_image_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={tile.token_image_url}
+                  alt="Your dream"
+                  className="w-full rounded-xl mb-1 object-cover aspect-square"
+                />
+              )}
+              {tile.story?.alex_tip && (
+                <div className="bg-amber-50 rounded-xl p-2.5 mb-1">
+                  <p className="text-amber-700 text-xs font-semibold mb-0.5">Alex&apos;s dream tip</p>
+                  <p className="text-amber-900 text-xs leading-snug">{tile.story.alex_tip}</p>
+                </div>
+              )}
+              <button
+                onClick={onReadAgain}
+                className="w-full py-2.5 rounded-xl bg-violet-600 text-white font-semibold text-sm hover:bg-violet-700 transition-colors"
+              >
+                🎧 Listen / read again
+              </button>
+              <button
+                onClick={onSubmitDream}
+                className="w-full py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 transition-colors"
+              >
+                🌙 Submit new dream
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Close */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 text-lg leading-none"
+          className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 text-xl leading-none z-10"
           aria-label="Close"
         >
           ×
         </button>
       </div>
-
-      {showAlexDream && (
-        <AlexDreamModal tile={tile} onClose={() => setShowAlexDream(false)} />
-      )}
     </>
   )
 }

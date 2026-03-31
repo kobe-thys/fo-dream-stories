@@ -8,17 +8,14 @@ interface FOMascotProps {
 
 function getContextualMessage(tile: MappedTile | null | undefined, fallback?: string): string {
   if (!tile) return fallback ?? 'Welcome! Tap the Mother Tree to begin your first adventure.'
-  if (tile.childState === 'unlocked') {
+  if (tile.type === 'terrain') return 'Beautiful landscape! Tap to explore it.'
+  if (tile.childState === 'grey') {
     return tile.type === 'mother_tree'
       ? 'Welcome to the Mother Tree! Close your eyes and listen — your adventure starts here! 🌳'
       : 'A new story awaits! Choose listening mode to close your eyes while I read. 🎧'
   }
-  if (tile.childState === 'listened') return 'You\'ve heard the story! Now share your dream — what did you imagine? 🌙'
-  if (tile.childState === 'completed') {
-    return tile.story?.alex_dream_image_url
-      ? 'Wonderful! Tap "See Alex\'s dream" to find out what he imagined! ✨'
-      : 'Wonderful! Your dream has been captured. Read it again whenever you like! ⭐'
-  }
+  if (tile.childState === 'revealed') return 'You\'ve heard the story! Now share your dream — what did you imagine? 🌙'
+  if (tile.childState === 'completed') return 'Wonderful! Your dream has been captured. ⭐'
   return fallback ?? 'Tap a tile to begin an adventure!'
 }
 

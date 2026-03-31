@@ -8,7 +8,7 @@ const storyTile: MappedTile = {
   model: null, rotation: 0, story_id: 'story-1',
   sensory_moment_text: null,
   created_at: '2026-01-01T00:00:00Z',
-  childState: 'unlocked', token_image_url: null,
+  childState: 'grey', token_image_url: null,
   story: {
     id: 'story-1', title: 'The Tinkle Trunk',
     story_text: 'Once upon a time...',
@@ -23,23 +23,24 @@ const storyTile: MappedTile = {
 const noop = () => {}
 
 describe('TilePopup', () => {
-  it('shows mode buttons for unlocked story tile', () => {
+  it('shows listen + read buttons for grey story tile', () => {
     render(<TilePopup tile={storyTile} onClose={noop} onListeningMode={noop} onReadingMode={noop} onSubmitDream={noop} onReadAgain={noop} />)
-    expect(screen.getByText(/Listening mode/i)).toBeInTheDocument()
-    expect(screen.getByText(/Reading mode/i)).toBeInTheDocument()
+    expect(screen.getByText(/Listen$/i)).toBeInTheDocument()
+    expect(screen.getByText(/Read$/i)).toBeInTheDocument()
   })
 
-  it('shows Tell us your dream for listened tile', () => {
-    render(<TilePopup tile={{ ...storyTile, childState: 'listened' }} onClose={noop} onListeningMode={noop} onReadingMode={noop} onSubmitDream={noop} onReadAgain={noop} />)
-    expect(screen.getByText(/Tell us your dream/i)).toBeInTheDocument()
+  it('shows submit dream for revealed tile', () => {
+    render(<TilePopup tile={{ ...storyTile, childState: 'revealed' }} onClose={noop} onListeningMode={noop} onReadingMode={noop} onSubmitDream={noop} onReadAgain={noop} />)
+    expect(screen.getByText(/Submit my dream/i)).toBeInTheDocument()
   })
 
-  it('shows Read it again for completed tile', () => {
+  it('shows listen/read again + submit new dream for completed tile', () => {
     render(<TilePopup tile={{ ...storyTile, childState: 'completed' }} onClose={noop} onListeningMode={noop} onReadingMode={noop} onSubmitDream={noop} onReadAgain={noop} />)
-    expect(screen.getByText(/Read it again/i)).toBeInTheDocument()
+    expect(screen.getByText(/Listen \/ read again/i)).toBeInTheDocument()
+    expect(screen.getByText(/Submit new dream/i)).toBeInTheDocument()
   })
 
-  it('shows Alex Dream text in completed popup when alex_tip is set (no image)', () => {
+  it('shows alex tip in completed popup', () => {
     render(<TilePopup tile={{ ...storyTile, childState: 'completed' }} onClose={noop} onListeningMode={noop} onReadingMode={noop} onSubmitDream={noop} onReadAgain={noop} />)
     expect(screen.getByText("Alex found a golden trumpet.")).toBeInTheDocument()
   })
@@ -51,18 +52,17 @@ describe('TilePopup', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
-  it('shows mode buttons for unlocked mother_tree tile', () => {
-    const motherTree: MappedTile = {
-      ...storyTile, type: 'mother_tree', name: 'Mother Tree', childState: 'unlocked',
-    }
-    render(<TilePopup tile={motherTree} onClose={noop} onListeningMode={noop} onReadingMode={noop} onSubmitDream={noop} onReadAgain={noop} />)
-    expect(screen.getByText(/Listening mode/i)).toBeInTheDocument()
-    expect(screen.getByText(/Reading mode/i)).toBeInTheDocument()
+  it('shows FO landscape message for terrain tile', () => {
+    const terrain: MappedTile = { ...storyTile, type: 'terrain', childState: 'grey', story: null, story_id: null }
+    render(<TilePopup tile={terrain} onClose={noop} onListeningMode={noop} onReadingMode={noop} onSubmitDream={noop} onReadAgain={noop} />)
+    expect(screen.getByText(/No story here/i)).toBeInTheDocument()
   })
 
-  it('shows See Alex dream button when alex_dream_image_url is set and not completed', () => {
-    render(<TilePopup tile={{ ...storyTile, story: { ...storyTile.story!, alex_dream_image_url: 'https://example.com/img.png' } }} onClose={noop} onListeningMode={noop} onReadingMode={noop} onSubmitDream={noop} onReadAgain={noop} />)
-    expect(screen.getByText(/See Alex/i)).toBeInTheDocument()
+  it('shows listen + read for grey mother_tree tile', () => {
+    const motherTree: MappedTile = { ...storyTile, type: 'mother_tree', name: 'Mother Tree', childState: 'grey' }
+    render(<TilePopup tile={motherTree} onClose={noop} onListeningMode={noop} onReadingMode={noop} onSubmitDream={noop} onReadAgain={noop} />)
+    expect(screen.getByText(/Listen$/i)).toBeInTheDocument()
+    expect(screen.getByText(/Read$/i)).toBeInTheDocument()
   })
 
   it('shows token image in completed popup when token_image_url is set', () => {

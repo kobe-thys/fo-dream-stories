@@ -36,7 +36,7 @@ export default function StoryPage() {
       const td = tileData as Tile & { story: Story | null }
       setTile({
         ...td,
-        childState: (stateRow?.state as TileState) ?? 'unlocked',
+        childState: (stateRow?.state as TileState) ?? 'grey',
         token_image_url: null,
         story: td.story ?? null,
       })
@@ -50,7 +50,7 @@ export default function StoryPage() {
     if (childId && tile) {
       const supabase = createClient()
       await supabase.from('child_tile_states').upsert(
-        { child_profile_id: childId, tile_id: tile.id, state: 'listened', listened_at: new Date().toISOString() },
+        { child_profile_id: childId, tile_id: tile.id, state: 'revealed', listened_at: new Date().toISOString() },
         { onConflict: 'child_profile_id,tile_id' }
       )
     }

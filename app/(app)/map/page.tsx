@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { Tile, ChildTileState, MappedTile, Story, TileState, DreamSubmission } from '@/lib/types'
-import { hexDistance } from '@/lib/hex'
 import TilePopup from '@/components/map/TilePopup'
 import DreamSubmissionDrawer from '@/components/dream/DreamSubmissionDrawer'
 import FOMascot from '@/components/fo/FOMascot'
@@ -12,16 +11,18 @@ import FOMascot from '@/components/fo/FOMascot'
 // Dynamic import with ssr:false — Three.js accesses window at module level
 const DreamerMapCanvas = dynamic(() => import('@/components/map/DreamerMapCanvas'), { ssr: false })
 
-function getInitialState(tile: Tile, allTiles: Tile[]): TileState | null {
-  if (tile.type === 'undefined') return null  // undefined tiles never visible
-  if (tile.type === 'mother_tree') return 'unlocked'
-  if (tile.type === 'terrain') return 'unlocked'  // terrain tiles always visible
-  const motherTree = allTiles.find(t => t.type === 'mother_tree')
-  if (motherTree) {
-    const dist = hexDistance(tile.position_q, tile.position_r, motherTree.position_q, motherTree.position_r)
-    if (dist === 1) return 'revealed'
-  }
-  return null
+// Tiles with no parent link start as grey; tiles with a parent link start hidden (null)
+function getInitialState(tile: Tile, childTileIds: Set<string>): TileState | null {
+  if (tile.type === 'undefined') return null
+  if (childTileIds.has(tile.id)) return null  // has parent → hidden until parent dream submitted
+  return 'grey'
+}
+
+// Migrate old DB state names to current values
+function migrateState(dbState: string): TileState {
+  if (dbState === 'completed') return 'completed'
+  if (dbState === 'listened' || dbState === 'revealed') return 'revealed'
+  return 'grey'  // 'unlocked' and any unknown → grey
 }
 
 export default function MapPage() {
@@ -33,19 +34,24 @@ export default function MapPage() {
   const [error, setError] = useState<string | null>(null)
   const [selectedTile, setSelectedTile] = useState<MappedTile | null>(null)
   const [drawerTile, setDrawerTile] = useState<MappedTile | null>(null)
-  const [sensoryTile, setSensoryTile] = useState<MappedTile | null>(null)
   const [fogMessage, setFogMessage] = useState<string | null>(null)
 
   const loadMap = useCallback(async (cId: string) => {
     const supabase = createClient()
 
-    const { data: tileRows, error: tilesError } = await supabase
-      .from('tiles')
-      .select('*, story:stories(*)')
-      .order('created_at', { ascending: true })
+    const [
+      { data: tileRows, error: tilesError },
+      { data: unlockRows },
+    ] = await Promise.all([
+      supabase.from('tiles').select('*, story:stories(*)').order('created_at', { ascending: true }),
+      supabase.from('tile_unlocks').select('to_tile_id'),
+    ])
+
     if (tilesError || !tileRows) { setError('Could not load the map.'); setLoading(false); return }
 
     const allTiles = tileRows as (Tile & { story: Story | null })[]
+    // Set of tile IDs that have a parent unlock entry (start hidden)
+    const childTileIds = new Set((unlockRows ?? []).map(r => r.to_tile_id as string))
 
     const { data: stateRows } = await supabase
       .from('child_tile_states').select('*').eq('child_profile_id', cId)
@@ -53,8 +59,9 @@ export default function MapPage() {
     let stateMap: Record<string, TileState> = {}
 
     if (!stateRows || stateRows.length === 0) {
+      // Fresh user: compute and persist initial states
       const initialStates = allTiles
-        .map(tile => ({ tile, state: getInitialState(tile, allTiles) }))
+        .map(tile => ({ tile, state: getInitialState(tile, childTileIds) }))
         .filter(({ state }) => state !== null) as { tile: typeof allTiles[0]; state: TileState }[]
 
       await supabase.from('child_tile_states').upsert(
@@ -63,11 +70,14 @@ export default function MapPage() {
       )
       initialStates.forEach(({ tile, state }) => { stateMap[tile.id] = state })
     } else {
-      ;(stateRows as ChildTileState[]).forEach(s => { stateMap[s.tile_id] = s.state })
-      // Ensure terrain tiles added after initial setup are always visible
+      // Existing user: migrate old state names + fill in any tiles not yet in DB
+      ;(stateRows as ChildTileState[]).forEach(s => {
+        stateMap[s.tile_id] = migrateState(s.state as string)
+      })
+      // Add any tiles with no parent link that aren't saved yet (e.g. added after initial setup)
       allTiles.forEach(tile => {
-        if (tile.type === 'terrain' && stateMap[tile.id] === undefined) {
-          stateMap[tile.id] = 'unlocked'
+        if (tile.type !== 'undefined' && !childTileIds.has(tile.id) && stateMap[tile.id] === undefined) {
+          stateMap[tile.id] = 'grey'
         }
       })
     }
@@ -106,37 +116,24 @@ export default function MapPage() {
   async function handleTileClick(tile: MappedTile | null) {
     if (!tile) { setSelectedTile(null); return }
 
-    if (tile.childState === 'revealed') {
-      const motherTree = tiles.find(t => t.type === 'mother_tree')
-      if (motherTree) {
-        const dist = hexDistance(tile.position_q, tile.position_r, motherTree.position_q, motherTree.position_r)
-        if (dist === 1 && motherTree.childState !== 'completed') {
-          setFogMessage('Complete the Mother Tree story first!')
-          setTimeout(() => setFogMessage(null), 3000)
-          return
-        }
-      }
-      if (childId) {
+    if (tile.type === 'terrain') {
+      // First tap on a grey terrain tile reveals it
+      if (tile.childState === 'grey' && childId) {
         const supabase = createClient()
         await supabase.from('child_tile_states').upsert(
-          { child_profile_id: childId, tile_id: tile.id, state: 'unlocked' },
+          { child_profile_id: childId, tile_id: tile.id, state: 'revealed' },
           { onConflict: 'child_profile_id,tile_id' }
         )
-        const unlocked = { ...tile, childState: 'unlocked' as TileState }
-        setTiles(prev => prev.map(t => t.id === tile.id ? unlocked : t))
-        setSelectedTile(unlocked)
+        const revealed = { ...tile, childState: 'revealed' as TileState }
+        setTiles(prev => prev.map(t => t.id === tile.id ? revealed : t))
+        setSelectedTile(revealed)
+      } else {
+        setSelectedTile(tile)
       }
       return
     }
 
-    if (tile.type === 'terrain') {
-      if (tile.sensory_moment_text) {
-        setSensoryTile(tile)
-        setTimeout(() => setSensoryTile(null), 4000)
-      }
-      return
-    }
-
+    // Story / mother_tree: always show the story pane
     setSelectedTile(tile)
   }
 
@@ -155,23 +152,16 @@ export default function MapPage() {
     if (unlockRows && unlockRows.length > 0) {
       const toIds = unlockRows.map((r: { to_tile_id: string }) => r.to_tile_id)
 
-      const { data: currentStates } = await supabase
-        .from('child_tile_states').select('tile_id, state')
-        .eq('child_profile_id', childId).in('tile_id', toIds)
-      const currentStateMap: Record<string, TileState> = {}
-      ;(currentStates ?? []).forEach((s: { tile_id: string; state: TileState }) => {
-        currentStateMap[s.tile_id] = s.state
-      })
-
+      // Newly reachable tiles become grey
       const upsertRows = toIds.map((id: string) => ({
         child_profile_id: childId,
         tile_id: id,
-        state: currentStateMap[id] === 'revealed' ? 'unlocked' : 'revealed',
+        state: 'grey' as TileState,
       }))
 
       await supabase.from('child_tile_states').upsert(upsertRows, { onConflict: 'child_profile_id,tile_id' })
 
-      // Fetch newly-unlocked tiles including story join
+      // Fetch and add newly visible tiles
       const { data: newTileRows } = await supabase
         .from('tiles')
         .select('*, story:stories(*)')
@@ -179,7 +169,7 @@ export default function MapPage() {
       if (newTileRows) {
         const newMapped: MappedTile[] = (newTileRows as (Tile & { story: Story | null })[]).map(t => ({
           ...t,
-          childState: (upsertRows.find(r => r.tile_id === t.id)?.state ?? 'revealed') as TileState,
+          childState: 'grey' as TileState,
           token_image_url: null,
           story: t.story ?? null,
         }))
@@ -227,7 +217,7 @@ export default function MapPage() {
         />
       </div>
 
-      {selectedTile && selectedTile.childState !== 'revealed' && (
+      {selectedTile && (
         <TilePopup
           tile={selectedTile}
           onClose={() => setSelectedTile(null)}
@@ -236,16 +226,6 @@ export default function MapPage() {
           onSubmitDream={() => { setDrawerTile(selectedTile); setSelectedTile(null) }}
           onReadAgain={() => { router.push(`/story/${selectedTile.id}?mode=reading`); setSelectedTile(null) }}
         />
-      )}
-
-      {sensoryTile?.sensory_moment_text && (
-        <>
-          <div onClick={() => setSensoryTile(null)} className="fixed inset-0 z-30" />
-          <div onClick={() => setSensoryTile(null)} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-40 w-72 bg-white rounded-2xl shadow-2xl p-6 text-center">
-            <p className="text-slate-700 text-base leading-relaxed">{sensoryTile.sensory_moment_text}</p>
-            <p className="text-slate-400 text-xs mt-3">Tap to close</p>
-          </div>
-        </>
       )}
 
       {fogMessage && (
