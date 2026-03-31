@@ -94,7 +94,7 @@ export default function TilePopup({
       <div data-testid="popup-backdrop" onClick={onClose} className="fixed inset-0 z-30" />
 
       {/* Popup */}
-      <div className="fixed left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 z-40 w-80 bg-white rounded-2xl shadow-2xl p-5">
+      <div className="fixed right-4 top-24 z-40 w-72 bg-white rounded-2xl shadow-2xl p-5">
         <h2 className="text-slate-800 font-bold text-lg mb-1">{tile.name}</h2>
 
         {/* Unlocked — show story mode buttons (not for terrain tiles) */}

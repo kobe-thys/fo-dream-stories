@@ -21,9 +21,9 @@ function applyStateToMaterial(
   mat.transparent = true
 
   if (tile.childState === 'revealed') {
-    // Tile is mostly hidden under the cloud puff — show a faint grey hint
-    mat.color.set(0x999999)
-    mat.opacity = 0.15
+    // Locked story tile: grey
+    mat.color.set(0x888888)
+    mat.opacity = 0.9
     mat.emissive.set(0x000000)
     mat.emissiveIntensity = 0
     return
@@ -130,24 +130,6 @@ export default function DreamerHexTile({ tile, isSelected, onClick }: DreamerHex
       onClick={e => { e.stopPropagation(); onClick(tile) }}
     >
       <primitive object={clonedScene} />
-
-      {/* Cloud puff for fogged/revealed tiles */}
-      {tile.childState === 'revealed' && (
-        <group position={[0, 1.0, 0]}>
-          <mesh position={[0, 0, 0]}>
-            <sphereGeometry args={[0.42, 8, 6]} />
-            <meshStandardMaterial color="#c8dde8" transparent opacity={0.82} depthWrite={false} />
-          </mesh>
-          <mesh position={[0.36, 0.1, 0]}>
-            <sphereGeometry args={[0.32, 8, 6]} />
-            <meshStandardMaterial color="#d4eaf2" transparent opacity={0.78} depthWrite={false} />
-          </mesh>
-          <mesh position={[-0.3, 0.08, 0.12]}>
-            <sphereGeometry args={[0.3, 8, 6]} />
-            <meshStandardMaterial color="#cce3ee" transparent opacity={0.75} depthWrite={false} />
-          </mesh>
-        </group>
-      )}
 
       {/* Selection ring — hexagonal ring mesh under the tile */}
       {isSelected && (

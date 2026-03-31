@@ -15,6 +15,7 @@ const DreamerMapCanvas = dynamic(() => import('@/components/map/DreamerMapCanvas
 function getInitialState(tile: Tile, allTiles: Tile[]): TileState | null {
   if (tile.type === 'undefined') return null  // undefined tiles never visible
   if (tile.type === 'mother_tree') return 'unlocked'
+  if (tile.type === 'terrain') return 'unlocked'  // terrain tiles always visible
   const motherTree = allTiles.find(t => t.type === 'mother_tree')
   if (motherTree) {
     const dist = hexDistance(tile.position_q, tile.position_r, motherTree.position_q, motherTree.position_r)
@@ -63,6 +64,12 @@ export default function MapPage() {
       initialStates.forEach(({ tile, state }) => { stateMap[tile.id] = state })
     } else {
       ;(stateRows as ChildTileState[]).forEach(s => { stateMap[s.tile_id] = s.state })
+      // Ensure terrain tiles added after initial setup are always visible
+      allTiles.forEach(tile => {
+        if (tile.type === 'terrain' && stateMap[tile.id] === undefined) {
+          stateMap[tile.id] = 'unlocked'
+        }
+      })
     }
 
     const { data: submissionRows } = await supabase
