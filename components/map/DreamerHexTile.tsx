@@ -30,9 +30,9 @@ function applyStateToMaterial(
   }
 
   if (tile.childState === 'unlocked' && tile.type !== 'terrain') {
-    // Story tile unlocked but not yet listened: greyscale from original colour
-    const lum = origColor.r * 0.299 + origColor.g * 0.587 + origColor.b * 0.114
-    mat.color.set(new THREE.Color(lum, lum, lum))
+    // Story tile unlocked but not yet listened: grey tint (origColor is white for
+    // textured Kenney materials so luminance-based desaturation gives full colour)
+    mat.color.set(0x666666)
     mat.opacity = 1
     mat.emissive.set(0x000000)
     mat.emissiveIntensity = 0
