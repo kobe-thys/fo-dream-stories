@@ -35,8 +35,13 @@ export default function SelectProfilePage() {
   async function handleReset(profile: ChildProfile) {
     if (!confirm(`Reset ${profile.name}'s map? This will clear all tile progress and dreams.`)) return
     setWorking(profile.id)
-    await fetch(`/api/profiles/${profile.id}/reset`, { method: 'POST' })
+    const res = await fetch(`/api/profiles/${profile.id}/reset`, { method: 'POST' })
     setWorking(null)
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      alert(`Reset failed (${res.status}): ${body.error ?? 'unknown error'}`)
+      return
+    }
     alert(`${profile.name}'s map has been reset.`)
   }
 
