@@ -54,7 +54,7 @@ export default function StoryPage() {
         { onConflict: 'child_profile_id,tile_id' }
       )
     }
-    router.push('/map')
+    router.push(`/map?resumeTileId=${tile!.id}`)
   }
 
   if (loading) {
@@ -80,6 +80,7 @@ export default function StoryPage() {
         tile={tile}
         onComplete={handleComplete}
         onFallback={() => router.replace(`/story/${tile.id}?mode=reading`)}
+        onStop={() => router.push('/map')}
       />
     )
   }

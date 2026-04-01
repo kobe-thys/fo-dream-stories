@@ -1,5 +1,7 @@
 'use client'
+import { useState } from 'react'
 import { MappedTile } from '@/lib/types'
+import DreamersGalleryModal from '@/components/dream/DreamersGalleryModal'
 
 interface TilePopupProps {
   tile: MappedTile
@@ -8,6 +10,7 @@ interface TilePopupProps {
   onReadingMode: () => void
   onSubmitDream: () => void
   onReadAgain: () => void
+  onSeeOtherDreamers?: () => void
 }
 
 function getFOMessage(tile: MappedTile): string {
@@ -28,16 +31,17 @@ const foImg = (foImageUrl: string | null | undefined) =>
   foImageUrl ?? '/fo-reading.png'
 
 export default function TilePopup({
-  tile, onClose, onListeningMode, onReadingMode, onSubmitDream, onReadAgain,
+  tile, onClose, onListeningMode, onReadingMode, onSubmitDream, onReadAgain, onSeeOtherDreamers,
 }: TilePopupProps) {
+  const [showGallery, setShowGallery] = useState(false)
   const isTerrain = tile.type === 'terrain'
   const foMessage = getFOMessage(tile)
   const foSrc = isTerrain ? '/fo-reading.png' : foImg(tile.story?.fo_image_url)
 
   return (
     <>
-      {/* Invisible backdrop to close on outside click */}
-      <div data-testid="popup-backdrop" onClick={onClose} className="fixed inset-0 z-30" />
+      {/* Backdrop — pointer-events-none so canvas tile clicks still register */}
+      <div data-testid="popup-backdrop" onClick={onClose} className="fixed inset-0 z-30" style={{ pointerEvents: 'none' }} />
 
       {/* Right panel */}
       <div className="fixed right-4 top-20 z-40 w-72 bg-white rounded-2xl shadow-2xl overflow-hidden">
@@ -64,7 +68,7 @@ export default function TilePopup({
 
         {/* Tile name */}
         <div className="px-4 pt-3 pb-1">
-          <h2 className="font-bold text-slate-800 text-sm">{tile.name ?? (isTerrain ? 'Terrain' : 'Unknown')}</h2>
+          <h2 className="font-bold text-slate-800 text-sm">{tile.name ?? tile.story?.title ?? (isTerrain ? 'Terrain' : 'Story')}</h2>
           {isTerrain && tile.sensory_moment_text && (
             <p className="text-slate-500 text-xs mt-1 leading-snug">{tile.sensory_moment_text}</p>
           )}
@@ -115,7 +119,7 @@ export default function TilePopup({
             </>
           )}
 
-          {/* Story completed → listen/read again + token + alex tip */}
+          {/* Story completed → token + actions */}
           {!isTerrain && tile.childState === 'completed' && (
             <>
               {tile.token_image_url && (
@@ -125,12 +129,6 @@ export default function TilePopup({
                   alt="Your dream"
                   className="w-full rounded-xl mb-1 object-cover aspect-square"
                 />
-              )}
-              {tile.story?.alex_tip && (
-                <div className="bg-amber-50 rounded-xl p-2.5 mb-1">
-                  <p className="text-amber-700 text-xs font-semibold mb-0.5">Alex&apos;s dream tip</p>
-                  <p className="text-amber-900 text-xs leading-snug">{tile.story.alex_tip}</p>
-                </div>
               )}
               <button
                 onClick={onReadAgain}
@@ -143,6 +141,12 @@ export default function TilePopup({
                 className="w-full py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 transition-colors"
               >
                 🌙 Submit new dream
+              </button>
+              <button
+                onClick={() => { setShowGallery(true); onSeeOtherDreamers?.() }}
+                className="w-full py-2.5 rounded-xl bg-slate-100 text-slate-700 font-semibold text-sm hover:bg-slate-200 transition-colors"
+              >
+                👀 See other dreamers&apos; dreams
               </button>
             </>
           )}
@@ -157,6 +161,14 @@ export default function TilePopup({
           ×
         </button>
       </div>
+
+      {showGallery && (
+        <DreamersGalleryModal
+          tileId={tile.id}
+          tileName={tile.name ?? tile.story?.title ?? 'Story'}
+          onClose={() => setShowGallery(false)}
+        />
+      )}
     </>
   )
 }

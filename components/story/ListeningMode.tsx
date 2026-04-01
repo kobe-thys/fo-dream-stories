@@ -7,12 +7,14 @@ interface ListeningModeProps {
   tile: MappedTile
   onComplete: () => void
   onFallback: () => void
+  onStop?: () => void
 }
 
 type Status = 'ready' | 'playing' | 'dream'
 
-export default function ListeningMode({ tile, onComplete, onFallback }: ListeningModeProps) {
+export default function ListeningMode({ tile, onComplete, onFallback, onStop }: ListeningModeProps) {
   const [status, setStatus] = useState<Status>('ready')
+  const [isPaused, setIsPaused] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   function requestFullscreen() {
@@ -48,6 +50,24 @@ export default function ListeningMode({ tile, onComplete, onFallback }: Listenin
     } else {
       onFallback()
     }
+  }
+
+  function togglePause() {
+    if (audioRef.current) {
+      if (isPaused) { audioRef.current.play().catch(() => {}); setIsPaused(false) }
+      else { audioRef.current.pause(); setIsPaused(true) }
+    } else {
+      if (isPaused) { window.speechSynthesis?.resume(); setIsPaused(false) }
+      else { window.speechSynthesis?.pause(); setIsPaused(true) }
+    }
+  }
+
+  function handleStop() {
+    audioRef.current?.pause()
+    window.speechSynthesis?.cancel()
+    exitFullscreen()
+    if (onStop) onStop()
+    else onFallback()
   }
 
   useEffect(() => {
@@ -101,12 +121,13 @@ export default function ListeningMode({ tile, onComplete, onFallback }: Listenin
           <div style={{
             width: 64, height: 64, borderRadius: '50%',
             backgroundColor: 'rgba(124,58,237,0.3)',
-            animation: 'pulse 2s ease-in-out infinite',
+            animation: isPaused ? 'none' : 'pulse 2s ease-in-out infinite',
+            opacity: isPaused ? 0.3 : 1,
             flexShrink: 0,
           }} />
           {tile.story?.story_text && (
             <div style={{
-              maxHeight: '55vh', overflowY: 'auto', textAlign: 'center',
+              maxHeight: '45vh', overflowY: 'auto', textAlign: 'center',
               scrollbarWidth: 'none',
             }}>
               <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 15, lineHeight: 1.8 }}>
@@ -115,8 +136,30 @@ export default function ListeningMode({ tile, onComplete, onFallback }: Listenin
             </div>
           )}
           <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>
-            {tile.story?.audio_url ? 'Now playing...' : 'Listening...'}
+            {isPaused ? 'Paused' : (tile.story?.audio_url ? 'Now playing...' : 'Listening...')}
           </p>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button
+              onClick={togglePause}
+              style={{
+                padding: '10px 24px', borderRadius: 999,
+                backgroundColor: 'rgba(124,58,237,0.6)',
+                color: 'white', fontSize: 14, border: 'none', cursor: 'pointer',
+              }}
+            >
+              {isPaused ? '▶ Resume' : '⏸ Pause'}
+            </button>
+            <button
+              onClick={handleStop}
+              style={{
+                padding: '10px 24px', borderRadius: 999,
+                backgroundColor: 'rgba(255,255,255,0.1)',
+                color: 'rgba(255,255,255,0.6)', fontSize: 14, border: 'none', cursor: 'pointer',
+              }}
+            >
+              ✕ Stop
+            </button>
+          </div>
         </div>
       )}
 

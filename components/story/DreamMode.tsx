@@ -10,8 +10,9 @@ export default function DreamMode({ onComplete }: DreamModeProps) {
   const [showMessage, setShowMessage] = useState(false)
 
   function handleTap() {
-    if (!showMessage) { setShowMessage(true); return }
-    onComplete()
+    if (showMessage) return
+    setShowMessage(true)
+    setTimeout(onComplete, 1800)
   }
 
   return (
@@ -21,7 +22,7 @@ export default function DreamMode({ onComplete }: DreamModeProps) {
       style={{
         position: 'fixed', inset: 0, backgroundColor: '#000',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        gap: 32, zIndex: 50, cursor: 'pointer', padding: '0 32px',
+        gap: 32, zIndex: 50, cursor: showMessage ? 'default' : 'pointer', padding: '0 32px',
       }}
     >
       {!showMessage && (

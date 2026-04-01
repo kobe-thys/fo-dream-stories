@@ -17,6 +17,7 @@ export default function StoryForm({ story: initialStory, isNew = false }: StoryF
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
   const [uploadingFo, setUploadingFo] = useState(false)
+  const [generatingAudio, setGeneratingAudio] = useState(false)
 
   function set(field: keyof Story, value: string | null) {
     setStory(prev => ({ ...prev, [field]: value }))
@@ -43,6 +44,17 @@ export default function StoryForm({ story: initialStory, isNew = false }: StoryF
     setDeleting(true)
     await fetch(`/api/admin/stories/${story.id}`, { method: 'DELETE' })
     router.push('/admin/stories')
+  }
+
+  async function handleGenerateAudio() {
+    if (!confirm('Generate audio with ElevenLabs? This will overwrite any existing audio_url.')) return
+    setGeneratingAudio(true)
+    setError('')
+    const res = await fetch(`/api/admin/stories/${story.id}/generate-audio`, { method: 'POST' })
+    const json = await res.json()
+    setGeneratingAudio(false)
+    if (!res.ok) { setError(json.error); return }
+    set('audio_url', json.url)
   }
 
   async function handleFoImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -97,6 +109,15 @@ export default function StoryForm({ story: initialStory, isNew = false }: StoryF
               currentUrl={story.audio_url}
               onUploaded={url => set('audio_url', url)}
             />
+            {story.story_text && (
+              <button
+                onClick={handleGenerateAudio}
+                disabled={generatingAudio}
+                className="mt-1 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-600 disabled:opacity-50 text-sm w-fit"
+              >
+                {generatingAudio ? 'Generating…' : '🎙 Generate audio with ElevenLabs'}
+              </button>
+            )}
           </div>
 
           <div className="flex flex-col gap-2">
