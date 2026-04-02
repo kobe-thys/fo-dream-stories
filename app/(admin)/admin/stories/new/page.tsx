@@ -8,7 +8,7 @@ const EMPTY_STORY: Story = {
   title: '',
   story_text: null,
   audio_url: null,
-  alex_tip: null,
+  alex_dream: null,
   alex_dream_image_url: null,
   default_token_image_url: null,
   fo_image_url: null,

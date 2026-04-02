@@ -6,7 +6,7 @@ export async function GET() {
   const db = adminClient()
   const { data, error } = await db
     .from('stories')
-    .select('id, title, created_at, story_text, audio_url, alex_tip, fo_image_url')
+    .select('id, title, created_at, story_text, audio_url, alex_dream, fo_image_url')
     .order('created_at', { ascending: true })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   const result = (data ?? []).map((s: Record<string, unknown>) => ({
@@ -15,7 +15,7 @@ export async function GET() {
     created_at: s.created_at,
     has_story_text: Boolean(s.story_text),
     has_audio: Boolean(s.audio_url),
-    has_alex_tip: Boolean(s.alex_tip),
+    has_alex_dream: Boolean(s.alex_dream),
     has_fo_image: Boolean(s.fo_image_url),
   }))
   return NextResponse.json(result)

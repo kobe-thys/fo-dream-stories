@@ -7,7 +7,7 @@ export default async function StoriesPage() {
   const db = adminClient()
   const { data: stories } = await db
     .from('stories')
-    .select('id, title, story_text, audio_url, alex_tip, fo_image_url')
+    .select('id, title, story_text, audio_url, alex_dream, fo_image_url')
     .order('created_at', { ascending: true })
 
   return (
@@ -34,7 +34,7 @@ export default async function StoriesPage() {
             <div className="flex gap-3 text-xs">
               <span className={s.story_text ? 'text-green-400' : 'text-gray-600'}>text {s.story_text ? '✓' : '✗'}</span>
               <span className={s.audio_url ? 'text-green-400' : 'text-gray-600'}>audio {s.audio_url ? '✓' : '✗'}</span>
-              <span className={s.alex_tip ? 'text-green-400' : 'text-gray-600'}>alex tip {s.alex_tip ? '✓' : '✗'}</span>
+              <span className={s.alex_dream ? 'text-green-400' : 'text-gray-600'}>alex dream {s.alex_dream ? '✓' : '✗'}</span>
               <span className={s.fo_image_url ? 'text-green-400' : 'text-gray-600'}>FO image {s.fo_image_url ? '✓' : '✗'}</span>
             </div>
           </Link>

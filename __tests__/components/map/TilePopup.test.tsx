@@ -13,7 +13,7 @@ const storyTile: MappedTile = {
     id: 'story-1', title: 'The Tinkle Trunk',
     story_text: 'Once upon a time...',
     audio_url: null,
-    alex_tip: 'Alex found a golden trumpet.',
+    alex_dream: 'Alex found a golden trumpet.',
     alex_dream_image_url: null,
     default_token_image_url: null,
     fo_image_url: null,
@@ -58,9 +58,9 @@ describe('TilePopup', () => {
     expect(screen.getByText(/No story here/i)).toBeInTheDocument()
   })
 
-  it('shows listen + read for grey mother_tree tile', () => {
-    const motherTree: MappedTile = { ...storyTile, type: 'mother_tree', name: 'Mother Tree', childState: 'grey' }
-    render(<TilePopup tile={motherTree} onClose={noop} onListeningMode={noop} onReadingMode={noop} onSubmitDream={noop} onReadAgain={noop} />)
+  it('shows listen + read for grey story tile (second)', () => {
+    const storyTile2: MappedTile = { ...storyTile, type: 'story', name: 'Another Story', childState: 'grey' }
+    render(<TilePopup tile={storyTile2} onClose={noop} onListeningMode={noop} onReadingMode={noop} onSubmitDream={noop} onReadAgain={noop} />)
     expect(screen.getByText(/Listen$/i)).toBeInTheDocument()
     expect(screen.getByText(/Read$/i)).toBeInTheDocument()
   })

@@ -67,7 +67,7 @@ export default function TileSidePanel({ tile, stories, onTileUpdated, onLinkedTi
     if (ok) onTileUpdated({ ...tile, story_id: storyId, story })
   }
 
-  const typeButtons: TileType[] = ['undefined', 'terrain', 'story', 'mother_tree']
+  const typeButtons: TileType[] = ['undefined', 'terrain', 'story']
 
   if (!tile) {
     return (
@@ -123,8 +123,8 @@ export default function TileSidePanel({ tile, stories, onTileUpdated, onLinkedTi
         </div>
       )}
 
-      {/* Name — terrain and mother_tree only */}
-      {(tile.type === 'terrain' || tile.type === 'mother_tree') && (
+      {/* Name — terrain only */}
+      {tile.type === 'terrain' && (
         <div>
           <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Name</p>
           <input

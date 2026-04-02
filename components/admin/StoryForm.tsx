@@ -30,7 +30,7 @@ export default function StoryForm({ story: initialStory, isNew = false }: StoryF
     const method = isNew ? 'POST' : 'PATCH'
     const body = isNew
       ? { title: story.title }
-      : { title: story.title, story_text: story.story_text, alex_tip: story.alex_tip }
+      : { title: story.title, story_text: story.story_text, alex_dream: story.alex_dream }
     const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     const json = await res.json()
     setSaving(false)
@@ -94,10 +94,10 @@ export default function StoryForm({ story: initialStory, isNew = false }: StoryF
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-xs text-gray-400 uppercase tracking-wider">Alex&apos;s Tip</label>
+            <label className="text-xs text-gray-400 uppercase tracking-wider">Alex&apos;s Dream</label>
             <textarea
-              value={story.alex_tip ?? ''}
-              onChange={e => set('alex_tip', e.target.value || null)}
+              value={story.alex_dream ?? ''}
+              onChange={e => set('alex_dream', e.target.value || null)}
               rows={3}
               className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white resize-y"
             />

@@ -1,9 +1,8 @@
 'use client'
 import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { MapControls, Environment } from '@react-three/drei'
+import { OrbitControls, Environment } from '@react-three/drei'
 import { MappedTile } from '@/lib/types'
-import { axialToWorld } from '@/lib/hex'
 import DreamerHexTile from './DreamerHexTile'
 
 interface DreamerMapCanvasProps {
@@ -13,17 +12,14 @@ interface DreamerMapCanvasProps {
 }
 
 export default function DreamerMapCanvas({ tiles, selectedTileId, onTileClick }: DreamerMapCanvasProps) {
-  // Centre camera on Mother Tree
-  const motherTile = tiles.find(t => t.type === 'mother_tree')
-  const { x: mx, z: mz } = motherTile
-    ? axialToWorld(motherTile.position_q, motherTile.position_r)
-    : { x: 0, z: 0 }
+  const cx = 0
+  const cz = 0
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}>
       <Canvas
         shadows
-        camera={{ position: [mx, 18, mz + 18], fov: 50 }}
+        camera={{ position: [cx, 18, cz + 18], fov: 50 }}
         onPointerMissed={() => onTileClick(null)}
       >
         <Suspense fallback={null}>
@@ -40,10 +36,9 @@ export default function DreamerMapCanvas({ tiles, selectedTileId, onTileClick }:
           {/* Environment for ambient reflections */}
           <Environment preset="sunset" />
 
-          {/* Controls: pan + zoom only, no rotation */}
-          <MapControls
-            target={[mx, 0, mz]}
-            enableRotate={false}
+          <OrbitControls
+            target={[cx, 0, cz]}
+            enableRotate={true}
             enablePan={true}
             enableZoom={true}
             minDistance={8}

@@ -30,7 +30,7 @@ export interface Story {
   title: string
   story_text: string | null
   audio_url: string | null
-  alex_tip: string | null
+  alex_dream: string | null
   default_token_image_url: string | null
   alex_dream_image_url: string | null
   fo_image_url: string | null
@@ -39,7 +39,7 @@ export interface Story {
 
 // ── Map types ────────────────────────────────────────────────────────────────
 
-export type TileType = 'undefined' | 'mother_tree' | 'story' | 'terrain'
+export type TileType = 'undefined' | 'story' | 'terrain'
 export type TerrainType = 'forest' | 'land' | 'water' | 'mountain'
 export type TileState = 'grey' | 'revealed' | 'completed'
 

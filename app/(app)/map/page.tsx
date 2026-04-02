@@ -113,7 +113,7 @@ export default function MapPage() {
     } else {
       // Welcome-back: surface first revealed story tile so dreamer can submit dream
       const revealedStory = mappedTiles.find(
-        t => (t.type === 'story' || t.type === 'mother_tree') && t.childState === 'revealed'
+        t => t.type === 'story' && t.childState === 'revealed'
       )
       if (revealedStory) setWelcomeBackTile(revealedStory)
     }
@@ -149,7 +149,7 @@ export default function MapPage() {
       return
     }
 
-    // Story / mother_tree: always show the story pane
+    // Story: always show the story pane
     setSelectedTile(tile)
   }
 

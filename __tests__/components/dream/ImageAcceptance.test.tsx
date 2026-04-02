@@ -11,7 +11,7 @@ const tile: MappedTile = {
   childState: 'revealed', token_image_url: null,
   story: {
     id: 'story-1', title: 'The Tinkle Trunk',
-    story_text: null, audio_url: null, alex_tip: null,
+    story_text: null, audio_url: null, alex_dream: null,
     alex_dream_image_url: null,
     default_token_image_url: '/default.png',
     fo_image_url: null,

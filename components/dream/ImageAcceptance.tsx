@@ -126,10 +126,18 @@ export default function ImageAcceptance({
             />
           </div>
         )}
-        {tile.story?.alex_tip && (
-          <div className="bg-muted rounded-2xl p-4 max-w-sm">
-            <p className="text-sm text-foreground font-medium">Alex says:</p>
-            <p className="text-sm text-muted-foreground mt-1">{tile.story.alex_tip}</p>
+        {tile.story?.alex_dream && (
+          <div className="bg-muted rounded-2xl p-4 max-w-sm flex flex-col gap-3">
+            <p className="text-sm text-foreground font-medium">Alex&apos;s Dream:</p>
+            {tile.story.alex_dream_image_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={tile.story.alex_dream_image_url}
+                alt="Alex's Dream"
+                style={{ width: '100%', borderRadius: 12, objectFit: 'cover' }}
+              />
+            )}
+            <p className="text-sm text-muted-foreground">{tile.story.alex_dream}</p>
           </div>
         )}
         <button

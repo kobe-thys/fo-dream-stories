@@ -7,7 +7,7 @@ export const HEX_H = 2 * HEX_SIZE               // 88px
 const HEX_CLIP = 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)'
 
 export function tileColor(type: TileType, terrainType: TerrainType | null): string {
-  if (type === 'story' || type === 'mother_tree') return '#7c3aed'
+  if (type === 'story') return '#7c3aed'
   if (type === 'terrain') {
     if (terrainType === 'forest')   return '#166534'
     if (terrainType === 'water')    return '#1e40af'

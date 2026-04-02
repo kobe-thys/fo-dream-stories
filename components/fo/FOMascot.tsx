@@ -10,9 +10,7 @@ function getContextualMessage(tile: MappedTile | null | undefined, fallback?: st
   if (!tile) return fallback ?? 'Welcome! Tap the Mother Tree to begin your first adventure.'
   if (tile.type === 'terrain') return 'Beautiful landscape! Tap to explore it.'
   if (tile.childState === 'grey') {
-    return tile.type === 'mother_tree'
-      ? 'Welcome to the Mother Tree! Close your eyes and listen — your adventure starts here! 🌳'
-      : 'A new story awaits! Choose listening mode to close your eyes while I read. 🎧'
+    return 'A new story awaits! Choose listening mode to close your eyes while I read. 🎧'
   }
   if (tile.childState === 'revealed') return 'You\'ve heard the story! Now share your dream — what did you imagine? 🌙'
   if (tile.childState === 'completed') return 'Wonderful! Your dream has been captured. ⭐'

@@ -7,10 +7,10 @@ const ALEX_STYLE = "A child's dream illustration, watercolour and ink, soft magi
 export async function POST(request: NextRequest) {
   if (!await isAdmin()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  const { storyId, alexTip } = await request.json()
-  if (!storyId || !alexTip) return NextResponse.json({ error: 'storyId and alexTip required' }, { status: 400 })
+  const { storyId, alexDream } = await request.json()
+  if (!storyId || !alexDream) return NextResponse.json({ error: 'storyId and alexDream required' }, { status: 400 })
 
-  const prompt = `${alexTip}. ${ALEX_STYLE}`
+  const prompt = `${alexDream}. ${ALEX_STYLE}`
   const result = await openai.images.generate({
     model: 'dall-e-3',
     prompt,
