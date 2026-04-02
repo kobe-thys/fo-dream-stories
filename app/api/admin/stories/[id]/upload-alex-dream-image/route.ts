@@ -4,12 +4,21 @@ import { isAdmin, adminClient } from '@/lib/admin'
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!await isAdmin()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const { id: storyId } = await params
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!UUID_RE.test(storyId)) {
+    return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
+  }
   const formData = await request.formData()
   const file = formData.get('image') as File | null
   if (!file) return NextResponse.json({ error: 'image file required' }, { status: 400 })
 
   const db = adminClient()
-  const ext = file.name.split('.').pop() ?? 'png'
+  const rawExt = file.name.split('.').pop()?.toLowerCase() ?? ''
+  const ALLOWED_EXTS = ['png', 'jpg', 'jpeg', 'webp', 'gif']
+  if (!ALLOWED_EXTS.includes(rawExt)) {
+    return NextResponse.json({ error: 'Invalid file type' }, { status: 400 })
+  }
+  const ext = rawExt
   const path = `alex-dreams/stories/${storyId}/${crypto.randomUUID()}.${ext}`
   const buffer = await file.arrayBuffer()
 
