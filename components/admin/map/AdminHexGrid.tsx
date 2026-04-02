@@ -39,9 +39,13 @@ export default function AdminHexGrid({
     if (isMoving && selectedTileId) {
       onEmptyClick(q, r)
     } else if (!isLinkingMode) {
-      onEmptyClick(q, r)
+      if (selectedTileId) {
+        onDeselect()
+      } else {
+        onEmptyClick(q, r)
+      }
     }
-  }, [tilePositions, isMoving, isLinkingMode, selectedTileId, onEmptyClick])
+  }, [tilePositions, isMoving, isLinkingMode, selectedTileId, onEmptyClick, onDeselect])
 
   return (
     <div style={{ width: '100%', height: '100%' }}>
