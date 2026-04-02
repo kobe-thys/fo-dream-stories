@@ -17,6 +17,7 @@ export interface AdminTile {
   rotation: number
   story_id: string | null
   story: { id: string; title: string } | null
+  published: boolean
 }
 
 // Kept for any callers that still use tileColor
@@ -31,17 +32,18 @@ const MODEL_SCALE = 1.72
 interface PlaceholderProps {
   position: [number, number, number]
   isSelected: boolean
+  published: boolean
   onClick: () => void
 }
 
-function PlaceholderTile({ position, isSelected, onClick }: PlaceholderProps) {
+function PlaceholderTile({ position, isSelected, published, onClick }: PlaceholderProps) {
   return (
     <mesh position={position} onClick={(e) => { e.stopPropagation(); onClick() }}>
       <cylinderGeometry args={[0.85, 0.85, 0.15, 6]} />
       <meshStandardMaterial
-        color={isSelected ? '#a78bfa' : '#374151'}
+        color={isSelected ? '#a78bfa' : (published ? '#374151' : '#92400e')}
         transparent
-        opacity={0.7}
+        opacity={published ? 0.7 : 0.5}
       />
     </mesh>
   )
@@ -74,13 +76,16 @@ function AdminHexTileModel({ tile, isSelected, isMoving, isLinkedToSelected, isB
         mat.emissive = new THREE.Color(0x00ffff)
         mat.emissiveIntensity = 0.4
         mat.opacity = 0.8
+      } else if (!tile.published) {
+        mat.color.setHex(0x92400e) // amber-800 — draft tint
+        mat.opacity = 0.55
       } else {
         mat.opacity = isMoving ? 0.6 : 1
       }
       mesh.material = mat
     })
     return c
-  }, [scene, isMoving, isBlockedByOtherStory, isLinkedToSelected])
+  }, [scene, isMoving, isBlockedByOtherStory, isLinkedToSelected, tile.published])
 
   const { x, z } = axialToWorld(tile.position_q, tile.position_r)
   const targetY = (isSelected || isMoving) ? 0.8 : 0
@@ -118,6 +123,7 @@ export default function AdminHexTile(props: Props) {
       <PlaceholderTile
         position={[x, 0, z]}
         isSelected={isSelected}
+        published={tile.published}
         onClick={() => onClick(tile.id, false, false)}
       />
     )
