@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { TileType, TerrainType } from '@/lib/types'
+import { TileType } from '@/lib/types'
 import { AdminTile } from './AdminHexTile'
 
 interface StoryOption { id: string; title: string }
@@ -9,8 +9,14 @@ interface StoryOption { id: string; title: string }
 interface Props {
   tile: AdminTile | null
   stories: StoryOption[]
+  modelFiles: string[]
+  selectedModel: string
+  onModelSelect: (model: string) => void
+  isMoving: boolean
   onTileUpdated: (updated: AdminTile) => void
   onLinkedTilesClick: () => void
+  onGrabToggle: () => void
+  onDelete: () => void
 }
 
 async function patchTile(id: string, patch: Record<string, unknown>): Promise<boolean> {
@@ -22,14 +28,42 @@ async function patchTile(id: string, patch: Record<string, unknown>): Promise<bo
   return res.ok
 }
 
-const TERRAIN_OPTIONS: { value: TerrainType; label: string }[] = [
-  { value: 'forest',   label: 'Forest' },
-  { value: 'water',    label: 'Water' },
-  { value: 'mountain', label: 'Mountain' },
-  { value: 'land',     label: 'Land' },
-]
+function ModelGrid({ models, selected, onSelect }: { models: string[]; selected: string; onSelect: (m: string) => void }) {
+  return (
+    <div className="grid grid-cols-3 gap-1 max-h-64 overflow-y-auto pr-1">
+      {models.map(m => {
+        const thumbSrc = `/models/${m.replace('.glb', '.png')}`
+        const label = m.replace('.glb', '').replace(/-/g, ' ')
+        return (
+          <button
+            key={m}
+            onClick={() => onSelect(m)}
+            title={label}
+            className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border transition-colors ${
+              selected === m
+                ? 'border-violet-500 bg-violet-900/30'
+                : 'border-gray-700 bg-gray-800 hover:border-gray-600'
+            }`}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={thumbSrc}
+              alt={label}
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+              className="w-full aspect-square object-contain rounded"
+            />
+            <span className="text-[9px] text-gray-400 truncate w-full text-center leading-tight">{label}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
-export default function TileSidePanel({ tile, stories, onTileUpdated, onLinkedTilesClick }: Props) {
+export default function TileSidePanel({
+  tile, stories, modelFiles, selectedModel, onModelSelect,
+  isMoving, onTileUpdated, onLinkedTilesClick, onGrabToggle, onDelete,
+}: Props) {
   const [name, setName] = useState(tile?.name ?? '')
   const nameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -40,24 +74,34 @@ export default function TileSidePanel({ tile, stories, onTileUpdated, onLinkedTi
 
   async function handleTypeChange(type: TileType) {
     if (!tile) return
-    const ok = await patchTile(tile.id, { type })
-    if (ok) onTileUpdated({ ...tile, type })
+    const patch: Record<string, unknown> = { type }
+    // Auto-name terrain from model filename
+    if (type === 'terrain' && tile.model) {
+      patch.name = tile.model.replace('.glb', '').replace(/-/g, ' ')
+    }
+    // Clear story link when switching away from story
+    if (type !== 'story') patch.story_id = null
+    const ok = await patchTile(tile.id, patch)
+    if (ok) onTileUpdated({ ...tile, type, ...(patch.name !== undefined ? { name: patch.name as string } : {}), ...(type !== 'story' ? { story_id: null, story: null } : {}) })
   }
 
-  async function handleTerrainTypeChange(terrainType: TerrainType | null) {
+  async function handleModelChange(model: string) {
+    onModelSelect(model)
     if (!tile) return
-    const ok = await patchTile(tile.id, { terrain_type: terrainType })
-    if (ok) onTileUpdated({ ...tile, terrain_type: terrainType })
+    const patch: Record<string, unknown> = { model }
+    // Auto-name terrain from model filename
+    if (tile.type === 'terrain') {
+      patch.name = model.replace('.glb', '').replace(/-/g, ' ')
+    }
+    const ok = await patchTile(tile.id, patch)
+    if (ok) onTileUpdated({ ...tile, model, ...(patch.name !== undefined ? { name: patch.name as string } : {}) })
   }
 
-  function handleNameInput(value: string) {
-    setName(value)
-    if (nameTimerRef.current) clearTimeout(nameTimerRef.current)
-    nameTimerRef.current = setTimeout(async () => {
-      if (!tile) return
-      const ok = await patchTile(tile.id, { name: value || null })
-      if (ok) onTileUpdated({ ...tile, name: value || null })
-    }, 300)
+  async function handleRotate() {
+    if (!tile) return
+    const rotation = (tile.rotation + 1) % 6
+    const ok = await patchTile(tile.id, { rotation })
+    if (ok) onTileUpdated({ ...tile, rotation })
   }
 
   async function handleStoryChange(storyId: string | null) {
@@ -67,77 +111,60 @@ export default function TileSidePanel({ tile, stories, onTileUpdated, onLinkedTi
     if (ok) onTileUpdated({ ...tile, story_id: storyId, story })
   }
 
-  const typeButtons: TileType[] = ['undefined', 'terrain', 'story']
+  async function handleDelete() {
+    if (!tile) return
+    if (!confirm('Delete this tile? This cannot be undone.')) return
+    onDelete()
+  }
 
   if (!tile) {
     return (
-      <aside style={{ width: 320, minWidth: 320 }} className="bg-gray-900 border-l border-gray-800 p-5 flex flex-col gap-4">
-        <p className="text-gray-500 text-sm">Click a tile to edit it, or click an empty hex to place a new tile.</p>
+      <aside style={{ width: 280, minWidth: 280 }} className="bg-gray-900 border-l border-gray-800 p-4 flex flex-col gap-4 overflow-y-auto">
+        <p className="text-gray-500 text-xs">Click empty ground to place a tile.</p>
+        <div>
+          <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Model to place</p>
+          <ModelGrid models={modelFiles} selected={selectedModel} onSelect={onModelSelect} />
+        </div>
       </aside>
     )
   }
 
+  const typeButtons: TileType[] = ['undefined', 'terrain', 'story']
+
   return (
-    <aside style={{ width: 320, minWidth: 320 }} className="bg-gray-900 border-l border-gray-800 p-5 flex flex-col gap-5 overflow-y-auto">
+    <aside style={{ width: 280, minWidth: 280 }} className="bg-gray-900 border-l border-gray-800 p-4 flex flex-col gap-4 overflow-y-auto">
 
       {/* Coordinates */}
-      <p className="text-xs text-gray-600 font-mono">
-        ({tile.position_q}, {tile.position_r})
-        {tile.name ? ` · ${tile.name}` : ''}
-      </p>
+      <p className="text-xs text-gray-600 font-mono">({tile.position_q}, {tile.position_r})</p>
 
-      {/* Type selector */}
+      {/* Type */}
       <div>
         <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Type</p>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {typeButtons.map(t => (
-            <button
-              key={t}
-              onClick={() => handleTypeChange(t)}
+            <button key={t} onClick={() => handleTypeChange(t)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                tile.type === t
-                  ? 'bg-violet-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-              }`}
-            >
+                tile.type === t ? 'bg-violet-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              }`}>
               {t}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Terrain type dropdown — terrain only */}
-      {tile.type === 'terrain' && (
-        <div>
-          <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Terrain type</p>
-          <select
-            value={tile.terrain_type ?? ''}
-            onChange={e => handleTerrainTypeChange((e.target.value as TerrainType) || null)}
-            className="w-full bg-gray-800 text-gray-200 rounded-lg px-3 py-2 text-sm border border-gray-700"
-          >
-            <option value="">— None —</option>
-            {TERRAIN_OPTIONS.map(o => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-        </div>
-      )}
+      {/* Model */}
+      <div>
+        <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Model</p>
+        <ModelGrid models={modelFiles} selected={tile.model ?? selectedModel} onSelect={handleModelChange} />
+      </div>
 
-      {/* Name — terrain only */}
-      {tile.type === 'terrain' && (
-        <div>
-          <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Name</p>
-          <input
-            type="text"
-            value={name}
-            onChange={e => handleNameInput(e.target.value)}
-            placeholder="Tile name"
-            className="w-full bg-gray-800 text-gray-200 rounded-lg px-3 py-2 text-sm border border-gray-700 placeholder-gray-600"
-          />
-        </div>
-      )}
+      {/* Rotate */}
+      <button onClick={handleRotate}
+        className="w-full py-2 bg-gray-800 text-gray-300 rounded-lg text-xs hover:bg-gray-700 transition-colors">
+        Rotate 60° ↻
+      </button>
 
-      {/* Story picker — story type only */}
+      {/* Story picker */}
       {tile.type === 'story' && (
         <div>
           <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Story</p>
@@ -147,35 +174,42 @@ export default function TileSidePanel({ tile, stories, onTileUpdated, onLinkedTi
             className="w-full bg-gray-800 text-gray-200 rounded-lg px-3 py-2 text-sm border border-gray-700"
           >
             <option value="">— None —</option>
-            {stories.map(s => (
-              <option key={s.id} value={s.id}>{s.title}</option>
-            ))}
+            {stories.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
           </select>
           {tile.story_id && (
-            <Link
-              href={`/admin/stories/${tile.story_id}`}
-              className="text-xs text-violet-400 hover:text-violet-300 mt-1 block"
-            >
+            <Link href={`/admin/stories/${tile.story_id}`}
+              className="text-xs text-violet-400 hover:text-violet-300 mt-1 block">
               Edit story →
             </Link>
           )}
-          <Link href="/admin/stories/new" className="text-xs text-gray-500 hover:text-gray-300 mt-1 block">
-            + New story
-          </Link>
         </div>
       )}
 
-      {/* Linked tiles — all non-undefined tiles */}
-      {tile.type !== 'undefined' && (
-        <div className="pt-2 border-t border-gray-800">
-          <button
-            onClick={onLinkedTilesClick}
-            className="w-full px-4 py-2 bg-gray-800 text-gray-300 rounded-lg text-sm hover:bg-gray-700 transition-colors text-left"
-          >
+      {/* Linked tiles — story tiles with a story assigned only */}
+      {tile.type === 'story' && tile.story_id && (
+        <div className="border-t border-gray-800 pt-3">
+          <button onClick={onLinkedTilesClick}
+            className="w-full px-4 py-2 bg-gray-800 text-gray-300 rounded-lg text-sm hover:bg-gray-700 transition-colors text-left">
             Linked tiles (unlocks when completed) →
           </button>
         </div>
       )}
+
+      {/* Grab / Drop */}
+      <button onClick={onGrabToggle}
+        className={`w-full py-2 rounded-lg text-xs font-medium transition-colors border ${
+          isMoving
+            ? 'bg-cyan-600 text-white border-cyan-500'
+            : 'bg-gray-800 text-gray-300 border-gray-700 hover:bg-gray-700'
+        }`}>
+        {isMoving ? 'Drop tile (click new position)' : 'Grab & move'}
+      </button>
+
+      {/* Delete */}
+      <button onClick={handleDelete}
+        className="w-full py-2 text-red-400 text-xs hover:text-red-300 transition-colors">
+        Delete tile
+      </button>
     </aside>
   )
 }
