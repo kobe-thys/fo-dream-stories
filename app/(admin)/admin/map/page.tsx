@@ -90,6 +90,17 @@ export default function AdminMapPage() {
     setLinkedIds([])
   }
 
+  async function resetMap() {
+    const input = window.prompt('Type RESET to delete all tiles and start over:')
+    if (input !== 'RESET') return
+    const res = await fetch('/api/admin/map-tiles', { method: 'DELETE' })
+    if (!res.ok) { alert('Reset failed'); return }
+    setTiles([])
+    setSelectedTile(null)
+    setAllUnlocks([])
+    setLinkedMode(false)
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500">
@@ -105,6 +116,16 @@ export default function AdminMapPage() {
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         {linkedMode && selectedTile && (
           <LinkedTilesModeHeader fromTile={selectedTile} onDone={exitLinkedMode} />
+        )}
+        {!linkedMode && (
+          <div className="absolute top-3 right-3 z-10">
+            <button
+              onClick={resetMap}
+              className="px-3 py-1.5 bg-red-950 text-red-400 border border-red-900 rounded-lg text-xs hover:bg-red-900 transition-colors"
+            >
+              Reset all tiles
+            </button>
+          </div>
         )}
         <AdminHexGrid
           tiles={tiles}
