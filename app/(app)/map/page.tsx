@@ -181,6 +181,7 @@ export default function MapPage() {
       const { data: newTileRows } = await supabase
         .from('tiles')
         .select('*, story:stories(*)')
+        .eq('published', true)
         .in('id', toIds)
       if (newTileRows) {
         const newMapped: MappedTile[] = (newTileRows as (Tile & { story: Story | null })[]).map(t => ({
