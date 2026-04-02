@@ -102,9 +102,9 @@ async function main() {
   // ── 1. Insert stories ──────────────────────────────────────────────────
   console.log('Inserting stories...')
   const { error: storiesError } = await db.from('stories').upsert([
-    { id: STORY_IDS.MOTHER_TREE,       title: 'Mother Tree',               story_text: MOTHER_TREE_TEXT,       alex_tip: MOTHER_TREE_TIP },
-    { id: STORY_IDS.TINKLE_TRUNK,      title: 'The Tinkle Trunk',          story_text: TINKLE_TRUNK_TEXT,      alex_tip: TINKLE_TRUNK_TIP },
-    { id: STORY_IDS.UPSIDE_DOWN_WFALL, title: 'The Upside-down Waterfall', story_text: UPSIDE_DOWN_WFALL_TEXT, alex_tip: UPSIDE_DOWN_WFALL_TIP },
+    { id: STORY_IDS.MOTHER_TREE,       title: 'Mother Tree',               story_text: MOTHER_TREE_TEXT,       alex_dream: MOTHER_TREE_TIP },
+    { id: STORY_IDS.TINKLE_TRUNK,      title: 'The Tinkle Trunk',          story_text: TINKLE_TRUNK_TEXT,      alex_dream: TINKLE_TRUNK_TIP },
+    { id: STORY_IDS.UPSIDE_DOWN_WFALL, title: 'The Upside-down Waterfall', story_text: UPSIDE_DOWN_WFALL_TEXT, alex_dream: UPSIDE_DOWN_WFALL_TIP },
     { id: STORY_IDS.RAINDROP_CASTLE,   title: 'Raindrop Castle' },
     { id: STORY_IDS.SYRUP_TREE,        title: 'The Syrup Tree' },
     { id: STORY_IDS.DRAGON_MOUNTAINS,  title: 'Dragon Mountains' },
@@ -134,7 +134,7 @@ async function main() {
   // ── 3. Insert tiles ────────────────────────────────────────────────────
   console.log('Inserting tiles...')
   const tileRows = tiles.map(tile => {
-    const type = tile.storyId === 'S1' ? 'mother_tree' : tile.type
+    const type = tile.storyId === 'S1' ? 'story' : tile.type
     const story_id = tile.storyId ? (GEMINI_STORY_ID_MAP[tile.storyId] ?? null) : null
 
     return {

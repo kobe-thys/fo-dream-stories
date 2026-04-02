@@ -281,7 +281,7 @@ export default function MapPage() {
       <FOMascot
         message={welcomeBackTile && !selectedTile
           ? `Welcome back, ${profileName}! You have a dream to submit for "${welcomeBackTile.name ?? 'your story'}".`
-          : `Welcome, ${profileName}! Tap the Mother Tree to begin.`}
+          : `Welcome, ${profileName}! Tap a story tile to begin.`}
         selectedTile={selectedTile}
       />
     </main>
