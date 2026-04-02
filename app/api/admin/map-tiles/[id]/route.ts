@@ -17,10 +17,27 @@ export async function PATCH(
   if ('story_id' in body)     patch.story_id = body.story_id
   if ('name' in body)         patch.name = body.name
   if ('terrain_type' in body) patch.terrain_type = body.terrain_type
+  if ('model' in body)        patch.model = body.model
+  if ('rotation' in body)     patch.rotation = body.rotation
+  if ('position_q' in body)   patch.position_q = body.position_q
+  if ('position_r' in body)   patch.position_r = body.position_r
   if (Object.keys(patch).length === 0) {
     return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
   }
   const { error } = await db.from('tiles').update(patch).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
+}
+
+export async function DELETE(
+  _: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  if (!await isAdmin()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const { id } = await params
+  if (!UUID_RE.test(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
+  const db = adminClient()
+  const { error } = await db.from('tiles').delete().eq('id', id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return new NextResponse(null, { status: 204 })
 }
