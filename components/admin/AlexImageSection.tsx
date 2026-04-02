@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Story } from '@/lib/types'
 
 interface Props {
@@ -9,7 +9,9 @@ interface Props {
 
 export default function AlexImageSection({ story, onUpdated }: Props) {
   const [generating, setGenerating] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [error, setError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   async function handleRegenerate() {
     if (!story.alex_dream) { setError("Add Alex's Dream text first — it's used as the image prompt."); return }
@@ -24,6 +26,22 @@ export default function AlexImageSection({ story, onUpdated }: Props) {
     setGenerating(false)
     if (!res.ok) { setError(json.error); return }
     onUpdated({ ...story, alex_dream_image_url: json.imageUrl })
+  }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingImage(true)
+    const fd = new FormData()
+    fd.append('image', file)
+    const res = await fetch(`/api/admin/stories/${story.id}/upload-alex-dream-image`, {
+      method: 'POST',
+      body: fd,
+    })
+    const json = await res.json()
+    setUploadingImage(false)
+    if (!res.ok) { setError(json.error); return }
+    onUpdated({ ...story, alex_dream_image_url: json.url })
   }
 
   return (
@@ -45,6 +63,20 @@ export default function AlexImageSection({ story, onUpdated }: Props) {
             >
               {generating ? 'Generating…' : 'Regenerate image'}
             </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingImage}
+              className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg text-sm hover:bg-gray-600 disabled:opacity-50 w-fit"
+            >
+              {uploadingImage ? 'Uploading…' : 'Upload image'}
+            </button>
           </div>
         </div>
       ) : (
@@ -56,6 +88,20 @@ export default function AlexImageSection({ story, onUpdated }: Props) {
             className="px-4 py-2 bg-amber-600/30 text-amber-400 rounded-lg text-sm hover:bg-amber-600/50 disabled:opacity-50 w-fit"
           >
             {generating ? 'Generating…' : 'Generate Alex dream image'}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingImage}
+            className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg text-sm hover:bg-gray-600 disabled:opacity-50 w-fit"
+          >
+            {uploadingImage ? 'Uploading…' : 'Upload image'}
           </button>
         </div>
       )}
