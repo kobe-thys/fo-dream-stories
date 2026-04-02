@@ -23,7 +23,7 @@ export default function StoryPage() {
       if (!childId) { router.push('/select-profile'); return }
       const supabase = createClient()
       const [{ data: tileData, error: tileErr }, { data: stateRow }] = await Promise.all([
-        supabase.from('tiles').select('*, story:stories(*)').eq('id', tileId).single(),
+        supabase.from('tiles').select('*, story:stories(*)').eq('id', tileId).eq('published', true).single(),
         supabase.from('child_tile_states').select('state').eq('child_profile_id', childId).eq('tile_id', tileId).single(),
       ])
 

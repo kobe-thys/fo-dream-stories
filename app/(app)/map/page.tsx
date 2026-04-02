@@ -46,7 +46,7 @@ export default function MapPage() {
       { data: tileRows, error: tilesError },
       { data: unlockRows },
     ] = await Promise.all([
-      supabase.from('tiles').select('*, story:stories(*)').order('created_at', { ascending: true }),
+      supabase.from('tiles').select('*, story:stories(*)').eq('published', true).order('created_at', { ascending: true }),
       supabase.from('tile_unlocks').select('to_tile_id'),
     ])
 
