@@ -1,6 +1,6 @@
 'use client'
-import { Suspense } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Suspense, useMemo, useCallback } from 'react'
+import { Canvas, type ThreeEvent } from '@react-three/fiber'
 import { OrbitControls, Environment, ContactShadows } from '@react-three/drei'
 import { HEX_X_SPACING, HEX_Z_SPACING } from '@/lib/hex'
 import AdminHexTile, { AdminTile } from './AdminHexTile'
@@ -27,19 +27,21 @@ export default function AdminHexGrid({
   tiles, selectedTileId, isMoving, isLinkingMode, linkedTileIds, allUnlocks,
   onTileClick, onEmptyClick, onDeselect,
 }: Props) {
-  const tilePositions = new Set(tiles.map(t => `${t.position_q},${t.position_r}`))
+  const tilePositions = useMemo(
+    () => new Set(tiles.map(t => `${t.position_q},${t.position_r}`)),
+    [tiles]
+  )
 
-  function handleGroundClick(e: any) {
+  const handleGroundClick = useCallback((e: ThreeEvent<MouseEvent>) => {
     if (e.delta > 5) return // drag, not click
     const { q, r } = axialFromWorld(e.point.x, e.point.z)
     if (tilePositions.has(`${q},${r}`)) return
     if (isMoving && selectedTileId) {
-      // Move selected tile to this position
       onEmptyClick(q, r)
     } else if (!isLinkingMode) {
       onEmptyClick(q, r)
     }
-  }
+  }, [tilePositions, isMoving, isLinkingMode, selectedTileId, onEmptyClick])
 
   return (
     <div style={{ width: '100%', height: '100%' }}>
