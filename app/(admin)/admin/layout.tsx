@@ -15,7 +15,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!admin) redirect('/map')
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 flex">
+    <div className="h-screen bg-gray-950 text-gray-100 flex">
       {/* Sidebar */}
       <aside className="w-56 bg-gray-900 border-r border-gray-800 flex flex-col p-4 gap-1 shrink-0">
         <p className="text-xs text-gray-500 uppercase tracking-widest mb-4 px-2">Admin</p>

@@ -34,6 +34,7 @@ export default function TileSidePanel({ tile, stories, onTileUpdated, onLinkedTi
   const nameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
+    if (nameTimerRef.current) clearTimeout(nameTimerRef.current)
     setName(tile?.name ?? '')
   }, [tile?.id, tile?.name])
 
