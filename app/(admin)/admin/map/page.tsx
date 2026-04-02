@@ -144,6 +144,12 @@ export default function AdminMapPage() {
     setIsMoving(false)
   }
 
+  async function handlePublishAll() {
+    const res = await fetch('/api/admin/map-tiles/publish', { method: 'POST' })
+    if (!res.ok) { alert('Publish failed'); return }
+    setTiles(prev => prev.map(t => ({ ...t, published: true })))
+  }
+
   const linkedTileIdsSet = useMemo(() => new Set(linkedIds), [linkedIds])
 
   if (loading) {
@@ -154,6 +160,8 @@ export default function AdminMapPage() {
     )
   }
 
+  const unpublishedCount = tiles.filter(t => !t.published).length
+
   return (
     <div style={{ display: 'flex', height: '100%', position: 'relative' }} className="-m-8">
 
@@ -163,7 +171,15 @@ export default function AdminMapPage() {
           <LinkedTilesModeHeader fromTile={selectedTile} onDone={exitLinkedMode} />
         )}
         {!linkedMode && (
-          <div className="absolute top-3 right-3 z-10">
+          <div className="absolute top-3 right-3 z-10 flex gap-2">
+            {unpublishedCount > 0 && (
+              <button
+                onClick={handlePublishAll}
+                className="px-3 py-1.5 bg-amber-600 text-white border border-amber-500 rounded-lg text-xs hover:bg-amber-500 transition-colors"
+              >
+                Publish all ({unpublishedCount} draft{unpublishedCount !== 1 ? 's' : ''})
+              </button>
+            )}
             <button
               onClick={resetMap}
               className="px-3 py-1.5 bg-red-950 text-red-400 border border-red-900 rounded-lg text-xs hover:bg-red-900 transition-colors"
