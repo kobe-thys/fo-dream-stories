@@ -1,21 +1,10 @@
 'use client'
-import { axialToPixel, HEX_SIZE } from '@/lib/hex'
+import { useRef, useMemo } from 'react'
+import { useFrame } from '@react-three/fiber'
+import { useGLTF } from '@react-three/drei'
+import * as THREE from 'three'
+import { axialToWorld } from '@/lib/hex'
 import { TileType, TerrainType } from '@/lib/types'
-
-export const HEX_W = Math.sqrt(3) * HEX_SIZE   // ~76.2px
-export const HEX_H = 2 * HEX_SIZE               // 88px
-const HEX_CLIP = 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)'
-
-export function tileColor(type: TileType, terrainType: TerrainType | null): string {
-  if (type === 'story') return '#7c3aed'
-  if (type === 'terrain') {
-    if (terrainType === 'forest')   return '#166534'
-    if (terrainType === 'water')    return '#1e40af'
-    if (terrainType === 'mountain') return '#78716c'
-    return '#374151'  // land or null
-  }
-  return '#6b7280'  // undefined
-}
 
 export interface AdminTile {
   id: string
@@ -24,75 +13,115 @@ export interface AdminTile {
   position_q: number
   position_r: number
   terrain_type: TerrainType | null
+  model: string | null
+  rotation: number
   story_id: string | null
   story: { id: string; title: string } | null
 }
 
-interface Props {
-  tile: AdminTile | null    // null = empty slot (no DB row yet)
-  q: number
-  r: number
-  offsetX: number
-  offsetY: number
-  isSelected: boolean
-  isLinked: boolean
-  linkedMode: boolean
-  onClick: (q: number, r: number, tile: AdminTile | null) => void
+// Kept for any callers that still use tileColor
+export function tileColor(type: TileType): string {
+  if (type === 'story') return '#7c3aed'
+  if (type === 'terrain') return '#166534'
+  return '#6b7280'
 }
 
-export default function AdminHexTile({ tile, q, r, offsetX, offsetY, isSelected, isLinked, linkedMode, onClick }: Props) {
-  const { x, y } = axialToPixel(q, r)
-  const left = offsetX + x - HEX_W / 2
-  const top  = offsetY + y - HEX_H / 2
+const MODEL_SCALE = 1.72
 
-  // In linked mode, empty slots and undefined tiles are non-clickable
-  const isClickable = !linkedMode || (tile !== null && tile.type !== 'undefined')
-  const opacity = linkedMode && (!tile || tile.type === 'undefined') ? 0.2 : 1
+interface PlaceholderProps {
+  position: [number, number, number]
+  isSelected: boolean
+  onClick: () => void
+}
 
-  let filter: string | undefined
-  if (isSelected) filter = 'drop-shadow(0 0 8px #a78bfa) brightness(1.3)'
-  else if (isLinked && linkedMode) filter = 'drop-shadow(0 0 6px #f59e0b) brightness(1.2)'
+function PlaceholderTile({ position, isSelected, onClick }: PlaceholderProps) {
+  return (
+    <mesh position={position} onClick={(e) => { e.stopPropagation(); onClick() }}>
+      <cylinderGeometry args={[0.85, 0.85, 0.15, 6]} />
+      <meshStandardMaterial
+        color={isSelected ? '#a78bfa' : '#374151'}
+        transparent
+        opacity={0.7}
+      />
+    </mesh>
+  )
+}
+
+interface Props {
+  tile: AdminTile
+  isSelected: boolean
+  isMoving: boolean
+  isLinkedToSelected: boolean
+  isBlockedByOtherStory: boolean
+  onClick: (id: string, shiftKey: boolean, ctrlKey: boolean) => void
+}
+
+function AdminHexTileModel({ tile, isSelected, isMoving, isLinkedToSelected, isBlockedByOtherStory, onClick }: Props) {
+  const { scene } = useGLTF(`/models/${tile.model}`)
+  const groupRef = useRef<THREE.Group>(null!)
+
+  const cloned = useMemo(() => {
+    const c = scene.clone(true)
+    c.traverse((child) => {
+      const mesh = child as THREE.Mesh
+      if (!mesh.isMesh) return
+      const mat = (mesh.material as THREE.MeshStandardMaterial).clone()
+      mat.transparent = true
+      if (isBlockedByOtherStory) {
+        mat.color.setHex(0x444444)
+        mat.opacity = 0.4
+      } else if (isLinkedToSelected) {
+        mat.emissive = new THREE.Color(0x00ffff)
+        mat.emissiveIntensity = 0.4
+        mat.opacity = 0.8
+      } else {
+        mat.opacity = isMoving ? 0.6 : 1
+      }
+      mesh.material = mat
+    })
+    return c
+  }, [scene, isMoving, isBlockedByOtherStory, isLinkedToSelected])
+
+  const { x, z } = axialToWorld(tile.position_q, tile.position_r)
+  const targetY = (isSelected || isMoving) ? 0.8 : 0
+  const targetRotY = (tile.rotation || 0) * (Math.PI / 3)
+
+  useFrame(() => {
+    if (!groupRef.current) return
+    groupRef.current.position.lerp(new THREE.Vector3(x, targetY, z), 0.1)
+    groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, targetRotY, 0.1)
+    const s = isMoving ? MODEL_SCALE * 0.9 : MODEL_SCALE
+    groupRef.current.scale.lerp(new THREE.Vector3(s, s, s), 0.1)
+  })
+
+  const ringColor = isLinkedToSelected ? '#00ffff' : '#a78bfa'
 
   return (
-    <div
-      onClick={() => isClickable && onClick(q, r, tile)}
-      style={{
-        position: 'absolute',
-        left,
-        top,
-        width: HEX_W,
-        height: HEX_H,
-        opacity,
-        cursor: isClickable ? 'pointer' : 'default',
-        filter,
-        userSelect: 'none',
-      }}
-    >
-      {tile ? (
-        // DB tile — filled colored hex
-        <div
-          style={{
-            width: '100%',
-            height: '100%',
-            clipPath: HEX_CLIP,
-            backgroundColor: tileColor(tile.type, tile.terrain_type),
-            transform: 'scale(0.95)',
-            transformOrigin: 'center',
-          }}
-        />
-      ) : (
-        // Empty slot — dim outline only
-        <div
-          style={{
-            width: '100%',
-            height: '100%',
-            clipPath: HEX_CLIP,
-            backgroundColor: 'rgba(255,255,255,0.03)',
-            transform: 'scale(0.95)',
-            transformOrigin: 'center',
-          }}
-        />
+    <group ref={groupRef} onClick={(e) => { e.stopPropagation(); onClick(tile.id, e.shiftKey, e.ctrlKey) }}>
+      <primitive object={cloned} />
+      {(isSelected || isLinkedToSelected) && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}>
+          <ringGeometry args={[0.88, 0.94, 6]} />
+          <meshBasicMaterial color={ringColor} transparent opacity={0.9} />
+        </mesh>
       )}
-    </div>
+    </group>
   )
+}
+
+export default function AdminHexTile(props: Props) {
+  const { tile, isSelected, onClick } = props
+  const { x, z } = axialToWorld(tile.position_q, tile.position_r)
+
+  if (!tile.model) {
+    return (
+      <PlaceholderTile
+        position={[x, 0, z]}
+        isSelected={isSelected}
+        onClick={() => onClick(tile.id, false, false)}
+      />
+    )
+  }
+
+  return <AdminHexTileModel {...props} />
 }
