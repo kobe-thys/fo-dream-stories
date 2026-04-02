@@ -1,5 +1,4 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { TileType } from '@/lib/types'
 import { AdminTile } from './AdminHexTile'
@@ -64,14 +63,6 @@ export default function TileSidePanel({
   tile, stories, modelFiles, selectedModel, onModelSelect,
   isMoving, onTileUpdated, onLinkedTilesClick, onGrabToggle, onDelete,
 }: Props) {
-  const [name, setName] = useState(tile?.name ?? '')
-  const nameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    if (nameTimerRef.current) clearTimeout(nameTimerRef.current)
-    setName(tile?.name ?? '')
-  }, [tile?.id, tile?.name])
-
   async function handleTypeChange(type: TileType) {
     if (!tile) return
     const patch: Record<string, unknown> = { type }
