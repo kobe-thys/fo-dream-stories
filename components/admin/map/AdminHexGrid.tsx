@@ -1,91 +1,93 @@
 'use client'
-import { useEffect, useRef } from 'react'
-import { TransformWrapper, TransformComponent, ReactZoomPanPinchRef } from 'react-zoom-pan-pinch'
+import { Suspense } from 'react'
+import { Canvas } from '@react-three/fiber'
+import { OrbitControls, Environment, ContactShadows } from '@react-three/drei'
+import { HEX_X_SPACING, HEX_Z_SPACING } from '@/lib/hex'
 import AdminHexTile, { AdminTile } from './AdminHexTile'
 
-const GRID_RADIUS = 25
-const CANVAS_W = 4400
-const CANVAS_H = 3600
-export const OFFSET_X = CANVAS_W / 2  // 2200
-export const OFFSET_Y = CANVAS_H / 2  // 1800
-
-// Generate all valid axial positions within radius R
-function generatePositions(radius: number): { q: number; r: number }[] {
-  const positions: { q: number; r: number }[] = []
-  for (let q = -radius; q <= radius; q++) {
-    for (let r = -radius; r <= radius; r++) {
-      if (Math.abs(q + r) <= radius) {
-        positions.push({ q, r })
-      }
-    }
-  }
-  return positions
+function axialFromWorld(x: number, z: number): { q: number; r: number } {
+  const r = Math.round(z / HEX_Z_SPACING)
+  const q = Math.round(x / HEX_X_SPACING - r / 2)
+  return { q, r }
 }
-
-const ALL_POSITIONS = generatePositions(GRID_RADIUS)
 
 interface Props {
   tiles: AdminTile[]
   selectedTileId: string | null
+  isMoving: boolean
+  isLinkingMode: boolean
   linkedTileIds: Set<string>
-  linkedMode: boolean
-  onTileClick: (q: number, r: number, tile: AdminTile | null) => void
+  allUnlocks: { from_tile_id: string; to_tile_id: string }[]
+  onTileClick: (id: string, shiftKey: boolean, ctrlKey: boolean) => void
+  onEmptyClick: (q: number, r: number) => void
+  onDeselect: () => void
 }
 
-export default function AdminHexGrid({ tiles, selectedTileId, linkedTileIds, linkedMode, onTileClick }: Props) {
-  const transformRef = useRef<ReactZoomPanPinchRef | null>(null)
-  const containerRef = useRef<HTMLDivElement | null>(null)
+export default function AdminHexGrid({
+  tiles, selectedTileId, isMoving, isLinkingMode, linkedTileIds, allUnlocks,
+  onTileClick, onEmptyClick, onDeselect,
+}: Props) {
+  const tilePositions = new Set(tiles.map(t => `${t.position_q},${t.position_r}`))
 
-  // Build lookup map: "q,r" → AdminTile
-  const tileMap = new Map<string, AdminTile>()
-  for (const tile of tiles) {
-    tileMap.set(`${tile.position_q},${tile.position_r}`, tile)
+  function handleGroundClick(e: any) {
+    if (e.delta > 5) return // drag, not click
+    const { q, r } = axialFromWorld(e.point.x, e.point.z)
+    if (tilePositions.has(`${q},${r}`)) return
+    if (isMoving && selectedTileId) {
+      // Move selected tile to this position
+      onEmptyClick(q, r)
+    } else if (!isLinkingMode) {
+      onEmptyClick(q, r)
+    }
   }
 
-  useEffect(() => {
-    if (!transformRef.current || !containerRef.current) return
-    const rect = containerRef.current.getBoundingClientRect()
-    const x = rect.width / 2 - OFFSET_X
-    const y = rect.height / 2 - OFFSET_Y
-    transformRef.current.setTransform(x, y, 1, 0)
-  }, [])
-
   return (
-    <div
-      ref={containerRef}
-      style={{ width: '100%', height: '100%', overflow: 'hidden', background: '#111827' }}
-    >
-      <TransformWrapper
-        ref={transformRef}
-        minScale={0.1}
-        maxScale={4}
-        limitToBounds={false}
-        panning={{ velocityDisabled: true }}
+    <div style={{ width: '100%', height: '100%' }}>
+      <Canvas
+        shadows
+        camera={{ position: [15, 15, 15], fov: 35 }}
+        onPointerMissed={onDeselect}
       >
-        <TransformComponent
-          wrapperStyle={{ width: '100%', height: '100%' }}
-          contentStyle={{ width: CANVAS_W, height: CANVAS_H, position: 'relative', willChange: 'transform' }}
-        >
-          {ALL_POSITIONS.map(({ q, r }) => {
-            const tile = tileMap.get(`${q},${r}`) ?? null
-            const key = `${q},${r}`
+        <Suspense fallback={null}>
+          <ambientLight intensity={1} />
+          <directionalLight position={[10, 20, 10]} intensity={1.2} castShadow />
+          <Environment preset="city" />
+          <OrbitControls makeDefault />
+
+          {tiles.map(tile => {
+            const isLinkedToSelected = isLinkingMode && linkedTileIds.has(tile.id)
+            // A tile is blocked if it unlocks a DIFFERENT story tile (not the current selected)
+            const linkedFrom = allUnlocks.find(u => u.to_tile_id === tile.id)?.from_tile_id
+            const isBlockedByOtherStory = isLinkingMode &&
+              linkedFrom !== undefined &&
+              linkedFrom !== selectedTileId
+
             return (
               <AdminHexTile
-                key={key}
+                key={tile.id}
                 tile={tile}
-                q={q}
-                r={r}
-                offsetX={OFFSET_X}
-                offsetY={OFFSET_Y}
-                isSelected={tile !== null && tile.id === selectedTileId}
-                isLinked={tile !== null && linkedTileIds.has(tile.id)}
-                linkedMode={linkedMode}
+                isSelected={tile.id === selectedTileId}
+                isMoving={isMoving && tile.id === selectedTileId}
+                isLinkedToSelected={isLinkedToSelected}
+                isBlockedByOtherStory={isBlockedByOtherStory}
                 onClick={onTileClick}
               />
             )
           })}
-        </TransformComponent>
-      </TransformWrapper>
+
+          {/* Invisible ground plane for click detection */}
+          <mesh
+            rotation={[-Math.PI / 2, 0, 0]}
+            position={[0, -0.01, 0]}
+            onClick={handleGroundClick}
+          >
+            <planeGeometry args={[200, 200]} />
+            <meshStandardMaterial transparent opacity={0} />
+          </mesh>
+
+          <ContactShadows position={[0, -0.01, 0]} opacity={0.3} scale={50} blur={2} />
+        </Suspense>
+      </Canvas>
     </div>
   )
 }
