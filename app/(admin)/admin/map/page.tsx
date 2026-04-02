@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { AdminTile } from '@/components/admin/map/AdminHexTile'
 import TileSidePanel from '@/components/admin/map/TileSidePanel'
@@ -36,6 +36,9 @@ export default function AdminMapPage() {
         setModelFiles(modelData)
         setSelectedModel(modelData[0])
       }
+      setLoading(false)
+    })
+    .catch(() => {
       setLoading(false)
     })
   }, [])
@@ -141,6 +144,8 @@ export default function AdminMapPage() {
     setIsMoving(false)
   }
 
+  const linkedTileIdsSet = useMemo(() => new Set(linkedIds), [linkedIds])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500">
@@ -172,7 +177,7 @@ export default function AdminMapPage() {
           selectedTileId={selectedTile?.id ?? null}
           isMoving={isMoving}
           isLinkingMode={linkedMode}
-          linkedTileIds={new Set(linkedIds)}
+          linkedTileIds={linkedTileIdsSet}
           allUnlocks={allUnlocks}
           onTileClick={handleTileClick}
           onEmptyClick={handleEmptyClick}
