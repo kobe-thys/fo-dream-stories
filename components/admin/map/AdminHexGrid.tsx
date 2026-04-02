@@ -64,9 +64,10 @@ export default function AdminHexGrid({
             const isLinkedToSelected = isLinkingMode && linkedTileIds.has(tile.id)
             // A tile is blocked if it unlocks a DIFFERENT story tile (not the current selected)
             const linkedFrom = allUnlocks.find(u => u.to_tile_id === tile.id)?.from_tile_id
-            const isBlockedByOtherStory = isLinkingMode &&
-              linkedFrom !== undefined &&
-              linkedFrom !== selectedTileId
+            const isBlockedByOtherStory = isLinkingMode && (
+              tile.type === 'undefined' ||
+              (linkedFrom !== undefined && linkedFrom !== selectedTileId)
+            )
 
             return (
               <AdminHexTile
