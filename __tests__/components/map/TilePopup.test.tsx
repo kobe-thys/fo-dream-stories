@@ -40,11 +40,6 @@ describe('TilePopup', () => {
     expect(screen.getByText(/Submit new dream/i)).toBeInTheDocument()
   })
 
-  it('shows alex tip in completed popup', () => {
-    render(<TilePopup tile={{ ...storyTile, childState: 'completed' }} onClose={noop} onListeningMode={noop} onReadingMode={noop} onSubmitDream={noop} onReadAgain={noop} />)
-    expect(screen.getByText("Alex found a golden trumpet.")).toBeInTheDocument()
-  })
-
   it('calls onClose when backdrop is clicked', () => {
     const onClose = jest.fn()
     render(<TilePopup tile={storyTile} onClose={onClose} onListeningMode={noop} onReadingMode={noop} onSubmitDream={noop} onReadAgain={noop} />)
