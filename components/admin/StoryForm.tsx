@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Story } from '@/lib/types'
 import AudioUpload from './AudioUpload'
@@ -17,6 +17,7 @@ export default function StoryForm({ story: initialStory, isNew = false }: StoryF
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
   const [uploadingFo, setUploadingFo] = useState(false)
+  const foFileInputRef = useRef<HTMLInputElement>(null)
   const [generatingAudio, setGeneratingAudio] = useState(false)
 
   function set(field: keyof Story, value: string | null) {
@@ -109,6 +110,10 @@ export default function StoryForm({ story: initialStory, isNew = false }: StoryF
               currentUrl={story.audio_url}
               onUploaded={url => set('audio_url', url)}
             />
+            {story.audio_url && (
+              // eslint-disable-next-line jsx-a11y/media-has-caption
+              <audio controls src={story.audio_url} className="w-full mt-1" />
+            )}
             {story.story_text && (
               <button
                 onClick={handleGenerateAudio}
@@ -127,13 +132,20 @@ export default function StoryForm({ story: initialStory, isNew = false }: StoryF
               <img src={story.fo_image_url} alt="FO mascot" className="w-32 h-32 object-contain rounded-lg mb-2" />
             )}
             <input
+              ref={foFileInputRef}
               type="file"
               accept="image/*"
               onChange={handleFoImageUpload}
               disabled={uploadingFo}
-              className="text-sm text-gray-400"
+              className="hidden"
             />
-            {uploadingFo && <p className="text-xs text-gray-500">Uploading…</p>}
+            <button
+              onClick={() => foFileInputRef.current?.click()}
+              disabled={uploadingFo}
+              className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg text-sm hover:bg-gray-600 disabled:opacity-50 w-fit"
+            >
+              {uploadingFo ? 'Uploading…' : story.fo_image_url ? 'Replace FO image' : 'Upload FO image'}
+            </button>
           </div>
 
           <div className="flex flex-col gap-2">
