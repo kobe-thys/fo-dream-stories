@@ -4,6 +4,7 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Environment } from '@react-three/drei'
 import { MappedTile } from '@/lib/types'
 import DreamerHexTile from './DreamerHexTile'
+import MapCompass from './MapCompass'
 
 interface DreamerMapCanvasProps {
   tiles: MappedTile[]
@@ -37,6 +38,7 @@ export default function DreamerMapCanvas({ tiles, selectedTileId, onTileClick }:
           <Environment preset="sunset" />
 
           <OrbitControls
+            makeDefault
             target={[cx, 0, cz]}
             enableRotate={true}
             enablePan={true}
@@ -58,6 +60,8 @@ export default function DreamerMapCanvas({ tiles, selectedTileId, onTileClick }:
               />
             ))
           }
+
+          <MapCompass />
         </Suspense>
       </Canvas>
     </div>

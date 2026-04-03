@@ -4,6 +4,7 @@ import { Canvas, type ThreeEvent } from '@react-three/fiber'
 import { OrbitControls, Environment, ContactShadows } from '@react-three/drei'
 import { HEX_X_SPACING, HEX_Z_SPACING } from '@/lib/hex'
 import AdminHexTile, { AdminTile } from './AdminHexTile'
+import MapCompass from '@/components/map/MapCompass'
 
 function axialFromWorld(x: number, z: number): { q: number; r: number } {
   const r = Math.round(z / HEX_Z_SPACING)
@@ -93,6 +94,8 @@ export default function AdminHexGrid({
           </mesh>
 
           <ContactShadows position={[0, -0.01, 0]} opacity={0.3} scale={50} blur={2} />
+
+          <MapCompass />
         </Suspense>
       </Canvas>
     </div>
