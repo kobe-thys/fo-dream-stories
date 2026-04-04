@@ -29,7 +29,7 @@ async function patchTile(id: string, patch: Record<string, unknown>): Promise<bo
 
 function ModelGrid({ models, selected, onSelect }: { models: string[]; selected: string; onSelect: (m: string) => void }) {
   return (
-    <div className="grid grid-cols-3 gap-1 max-h-64 overflow-y-auto pr-1">
+    <div className="grid grid-cols-3 gap-1 max-h-96 overflow-y-auto pr-1">
       {models.map(m => {
         const thumbSrc = `/models/${m.replace('.glb', '.png')}`
         const label = m.replace('.glb', '').replace(/-/g, ' ')
@@ -110,7 +110,7 @@ export default function TileSidePanel({
 
   if (!tile) {
     return (
-      <aside style={{ width: 280, minWidth: 280 }} className="bg-gray-900 border-l border-gray-800 p-4 flex flex-col gap-4 overflow-y-auto">
+      <aside style={{ width: 340, minWidth: 340 }} className="bg-gray-900 border-l border-gray-800 p-4 flex flex-col gap-4 overflow-y-auto">
         <p className="text-gray-500 text-xs">Click empty ground to place a tile.</p>
         <div>
           <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Model to place</p>
@@ -123,7 +123,7 @@ export default function TileSidePanel({
   const typeButtons: TileType[] = ['undefined', 'terrain', 'story']
 
   return (
-    <aside style={{ width: 280, minWidth: 280 }} className="bg-gray-900 border-l border-gray-800 p-4 flex flex-col gap-4 overflow-y-auto">
+    <aside style={{ width: 340, minWidth: 340 }} className="bg-gray-900 border-l border-gray-800 p-4 flex flex-col gap-4 overflow-y-auto">
 
       {/* Coordinates */}
       <p className="text-xs text-gray-600 font-mono">({tile.position_q}, {tile.position_r})</p>
