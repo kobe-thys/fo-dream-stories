@@ -6,7 +6,7 @@ export async function GET() {
   const db = adminClient()
   const { data, error } = await db
     .from('tiles')
-    .select('id, type, name, position_q, position_r, terrain_type, model, rotation, story_id, published, story:stories(id, title)')
+    .select('id, type, name, position_q, position_r, terrain_type, model, rotation, story_id, published, scale_x, scale_y, scale_z, story:stories(id, title)')
     .order('created_at', { ascending: true })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data ?? [])
@@ -21,8 +21,8 @@ export async function POST(req: NextRequest) {
   }
   const { data, error } = await db
     .from('tiles')
-    .insert({ type: 'undefined', position_q: q, position_r: r, model: model ?? null, rotation: 0, published: false })
-    .select('id, type, name, position_q, position_r, terrain_type, model, rotation, story_id, published')
+    .insert({ type: 'undefined', position_q: q, position_r: r, model: model ?? null, rotation: 0, published: false, scale_x: 1.0, scale_y: 1.0, scale_z: 1.0 })
+    .select('id, type, name, position_q, position_r, terrain_type, model, rotation, story_id, published, scale_x, scale_y, scale_z')
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ...data, story: null }, { status: 201 })

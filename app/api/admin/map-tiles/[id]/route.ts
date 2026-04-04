@@ -21,6 +21,9 @@ export async function PATCH(
   if ('rotation' in body)     patch.rotation = body.rotation
   if ('position_q' in body)   patch.position_q = body.position_q
   if ('position_r' in body)   patch.position_r = body.position_r
+  if ('scale_x' in body)      patch.scale_x = body.scale_x
+  if ('scale_y' in body)      patch.scale_y = body.scale_y
+  if ('scale_z' in body)      patch.scale_z = body.scale_z
   if (Object.keys(patch).length === 0) {
     return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
   }
