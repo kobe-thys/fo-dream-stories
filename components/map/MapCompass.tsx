@@ -2,11 +2,9 @@
 import { useRef } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
-import * as THREE from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 
 export default function MapCompass() {
-  const { camera } = useThree()
   const controls = useThree(state => state.controls) as OrbitControlsImpl | null
   const needleRef = useRef<HTMLDivElement>(null)
 
@@ -17,15 +15,7 @@ export default function MapCompass() {
   })
 
   function handleReset() {
-    if (!controls) return
-    const target = controls.target as THREE.Vector3
-    const { y } = camera.position
-    const dx = camera.position.x - target.x
-    const dz = camera.position.z - target.z
-    const r = Math.sqrt(dx * dx + dz * dz)
-    camera.position.set(target.x, y, target.z + r)
-    camera.lookAt(target)
-    controls.update()
+    controls?.reset()
   }
 
   return (
