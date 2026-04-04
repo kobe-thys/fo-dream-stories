@@ -118,7 +118,7 @@ export default function DreamerHexTile({ tile, isSelected, onClick }: DreamerHex
       ref={groupRef}
       position={[x, 0, z]}
       rotation={[0, rotationY, 0]}
-      scale={[1.72, 1.72, 1.72]}
+      scale={[1.72 * (tile.scale_x ?? 1), 1.72 * (tile.scale_y ?? 1), 1.72 * (tile.scale_z ?? 1)]}
       onClick={e => { e.stopPropagation(); onClick(tile) }}
     >
       <primitive object={clonedScene} />

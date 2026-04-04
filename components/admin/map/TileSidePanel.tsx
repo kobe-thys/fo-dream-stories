@@ -18,6 +18,8 @@ interface Props {
   onDelete: () => void
 }
 
+type ScaleAxis = 'scale_x' | 'scale_y' | 'scale_z'
+
 async function patchTile(id: string, patch: Record<string, unknown>): Promise<boolean> {
   const res = await fetch(`/api/admin/map-tiles/${id}`, {
     method: 'PATCH',
@@ -102,6 +104,14 @@ export default function TileSidePanel({
     if (ok) onTileUpdated({ ...tile, story_id: storyId, story })
   }
 
+  async function handleScaleChange(axis: ScaleAxis, delta: number) {
+    if (!tile) return
+    const current = tile[axis] ?? 1
+    const next = Math.round(Math.max(0.1, current + delta) * 100) / 100
+    const ok = await patchTile(tile.id, { [axis]: next })
+    if (ok) onTileUpdated({ ...tile, [axis]: next })
+  }
+
   async function handleDelete() {
     if (!tile) return
     if (!confirm('Delete this tile? This cannot be undone.')) return
@@ -154,6 +164,25 @@ export default function TileSidePanel({
         className="w-full py-2 bg-gray-800 text-gray-300 rounded-lg text-xs hover:bg-gray-700 transition-colors">
         Rotate 60° ↻
       </button>
+
+      {/* Scale */}
+      <div>
+        <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Scale</p>
+        {(['scale_x', 'scale_y', 'scale_z'] as ScaleAxis[]).map(axis => {
+          const label = axis.replace('scale_', '').toUpperCase()
+          const value = tile[axis] ?? 1
+          return (
+            <div key={axis} className="flex items-center gap-2 mb-1.5">
+              <span className="text-xs text-gray-400 w-4">{label}</span>
+              <button onClick={() => handleScaleChange(axis, -0.1)}
+                className="w-7 h-7 bg-gray-800 text-gray-300 rounded text-sm hover:bg-gray-700 transition-colors flex items-center justify-center">−</button>
+              <span className="flex-1 text-center text-xs text-gray-200 font-mono">{value.toFixed(2)}</span>
+              <button onClick={() => handleScaleChange(axis, 0.1)}
+                className="w-7 h-7 bg-gray-800 text-gray-300 rounded text-sm hover:bg-gray-700 transition-colors flex items-center justify-center">+</button>
+            </div>
+          )
+        })}
+      </div>
 
       {/* Story picker */}
       {tile.type === 'story' && (

@@ -18,6 +18,9 @@ export interface AdminTile {
   story_id: string | null
   story: { id: string; title: string } | null
   published: boolean
+  scale_x: number
+  scale_y: number
+  scale_z: number
 }
 
 // Kept for any callers that still use tileColor
@@ -95,8 +98,11 @@ function AdminHexTileModel({ tile, isSelected, isMoving, isLinkedToSelected, isB
     if (!groupRef.current) return
     groupRef.current.position.lerp(new THREE.Vector3(x, targetY, z), 0.1)
     groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, targetRotY, 0.1)
-    const s = isMoving ? MODEL_SCALE * 0.9 : MODEL_SCALE
-    groupRef.current.scale.lerp(new THREE.Vector3(s, s, s), 0.1)
+    const moveFactor = isMoving ? 0.9 : 1
+    const sx = MODEL_SCALE * (tile.scale_x ?? 1) * moveFactor
+    const sy = MODEL_SCALE * (tile.scale_y ?? 1) * moveFactor
+    const sz = MODEL_SCALE * (tile.scale_z ?? 1) * moveFactor
+    groupRef.current.scale.lerp(new THREE.Vector3(sx, sy, sz), 0.1)
   })
 
   const ringColor = isLinkedToSelected ? '#00ffff' : '#a78bfa'

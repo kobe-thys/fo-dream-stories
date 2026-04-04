@@ -54,6 +54,9 @@ export interface Tile {
   rotation: number
   story_id: string | null
   sensory_moment_text: string | null
+  scale_x: number
+  scale_y: number
+  scale_z: number
   created_at: string
 }
 
