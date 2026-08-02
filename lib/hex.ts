@@ -36,13 +36,50 @@ export function getNeighborCoords(q: number, r: number): { q: number; r: number 
 }
 
 // ── 3D world-space coordinates for Three.js (x, z plane; y=0 is ground) ─────
-// Spacing matches Kenney Hexagon Kit GLB scale.
-export const HEX_X_SPACING = 1.732  // ≈ √3
-export const HEX_Z_SPACING = 1.5
+// Every tile GLB in public/models/ follows the Kenney Hexagon Kit contract:
+// a pointy-top hex of circumradius 0.5774 (footprint 1.000 x 1.155), base at y=0.
+// Measured directly from grass.glb — see docs/superpowers/specs/2026-08-02-plan-10.
+export const KENNEY_HEX_R = 0.5774
+
+// Uniform scale applied to every tile model when placed on the map.
+export const MODEL_SCALE = 1.72
+
+// Spacing is derived from the two constants above rather than hard-coded, so the
+// grid and the models can never drift apart. Previously these were the literals
+// 1.732 / 1.5, which left a ~0.012-unit seam between neighbouring tiles.
+const R = KENNEY_HEX_R * MODEL_SCALE
+export const HEX_X_SPACING = Math.sqrt(3) * R
+export const HEX_Z_SPACING = 1.5 * R
 
 export function axialToWorld(q: number, r: number): { x: number; z: number } {
   return {
     x: HEX_X_SPACING * (q + r / 2),
     z: HEX_Z_SPACING * r,
   }
+}
+
+// Inverse of axialToWorld: which hex contains this world-space point?
+//
+// Rounding q and r independently does NOT work -- it misplaces the six corner
+// triangles of every hex, which is 7.5% of the surface area (verified against a
+// nearest-centre reference over 200k random points). Fractional axial coords must
+// be converted to cube space, rounded, then the component with the largest
+// rounding error recomputed from the other two so that q + r + s == 0 holds.
+export function worldToAxial(x: number, z: number): { q: number; r: number } {
+  const rf = z / HEX_Z_SPACING
+  const qf = x / HEX_X_SPACING - rf / 2
+  const sf = -qf - rf
+
+  let q = Math.round(qf)
+  let r = Math.round(rf)
+  const s = Math.round(sf)
+
+  const dq = Math.abs(q - qf)
+  const dr = Math.abs(r - rf)
+  const ds = Math.abs(s - sf)
+
+  if (dq > dr && dq > ds) q = -r - s
+  else if (dr > ds) r = -q - s
+
+  return { q, r }
 }

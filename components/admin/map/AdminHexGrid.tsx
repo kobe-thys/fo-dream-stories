@@ -2,15 +2,9 @@
 import { Suspense, useMemo, useCallback } from 'react'
 import { Canvas, type ThreeEvent } from '@react-three/fiber'
 import { OrbitControls, Environment, ContactShadows } from '@react-three/drei'
-import { HEX_X_SPACING, HEX_Z_SPACING } from '@/lib/hex'
+import { worldToAxial } from '@/lib/hex'
 import AdminHexTile, { AdminTile } from './AdminHexTile'
 import MapCompass from '@/components/map/MapCompass'
-
-function axialFromWorld(x: number, z: number): { q: number; r: number } {
-  const r = Math.round(z / HEX_Z_SPACING)
-  const q = Math.round(x / HEX_X_SPACING - r / 2)
-  return { q, r }
-}
 
 interface Props {
   tiles: AdminTile[]
@@ -35,18 +29,13 @@ export default function AdminHexGrid({
 
   const handleGroundClick = useCallback((e: ThreeEvent<MouseEvent>) => {
     if (e.delta > 5) return // drag, not click
-    const { q, r } = axialFromWorld(e.point.x, e.point.z)
+    const { q, r } = worldToAxial(e.point.x, e.point.z)
     if (tilePositions.has(`${q},${r}`)) return
-    if (isMoving && selectedTileId) {
-      onEmptyClick(q, r)
-    } else if (!isLinkingMode) {
-      if (selectedTileId) {
-        onDeselect()
-      } else {
-        onEmptyClick(q, r)
-      }
-    }
-  }, [tilePositions, isMoving, isLinkingMode, selectedTileId, onEmptyClick, onDeselect])
+    if (isLinkingMode) return
+    // Placing several tiles in a row should not require a deselect click between
+    // each one, so an empty-ground click always places (or drops, when moving).
+    onEmptyClick(q, r)
+  }, [tilePositions, isLinkingMode, onEmptyClick])
 
   return (
     <div style={{ width: '100%', height: '100%' }}>
@@ -83,10 +72,11 @@ export default function AdminHexGrid({
             )
           })}
 
-          {/* Invisible ground plane for click detection */}
+          {/* Invisible ground plane for click detection. Sits below the contact
+              shadows rather than coplanar with them, which z-fights. */}
           <mesh
             rotation={[-Math.PI / 2, 0, 0]}
-            position={[0, -0.01, 0]}
+            position={[0, -0.05, 0]}
             onClick={handleGroundClick}
           >
             <planeGeometry args={[200, 200]} />

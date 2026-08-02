@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Tile art working files
+# art/source/ IS committed — those are the irreplaceable masters.
+# These two are large and reproducible, so they stay on disk but out of git:
+art/props/experiments/
+art/cutouts/

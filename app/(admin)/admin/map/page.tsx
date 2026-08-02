@@ -21,6 +21,7 @@ export default function AdminMapPage() {
   const [isMoving, setIsMoving]     = useState(false)
   const [modelFiles, setModelFiles] = useState<string[]>([])
   const [selectedModel, setSelectedModel] = useState<string>('grass.glb')
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -35,10 +36,14 @@ export default function AdminMapPage() {
       if (Array.isArray(modelData) && modelData.length > 0) {
         setModelFiles(modelData)
         setSelectedModel(modelData[0])
+      } else {
+        // Previously this failed silently and the picker just rendered empty.
+        setLoadError('Could not load the tile model list (/api/admin/models).')
       }
       setLoading(false)
     })
     .catch(() => {
+      setLoadError('Could not reach the admin API. Check you are signed in as an admin.')
       setLoading(false)
     })
   }, [])
@@ -167,6 +172,11 @@ export default function AdminMapPage() {
 
       {/* Map area */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        {loadError && (
+          <div className="absolute top-3 left-3 z-20 px-3 py-2 bg-red-950 text-red-300 border border-red-800 rounded-lg text-xs max-w-sm">
+            {loadError}
+          </div>
+        )}
         {linkedMode && selectedTile && (
           <LinkedTilesModeHeader fromTile={selectedTile} onDone={exitLinkedMode} />
         )}

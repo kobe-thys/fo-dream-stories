@@ -1,0 +1,455 @@
+{
+  "generatedAt": "2026-08-02T20:07:37.829Z",
+  "models": [
+    {
+      "file": "0 - mother tree2.glb",
+      "label": "0   mother tree2",
+      "thumb": "/models/0%20-%20mother%20tree2.png",
+      "bytes": 5536288
+    },
+    {
+      "file": "Sunken Elven Ship.glb",
+      "label": "Sunken Elven Ship",
+      "thumb": "/models/Sunken%20Elven%20Ship.png",
+      "bytes": 2383740
+    },
+    {
+      "file": "bridge.glb",
+      "label": "bridge",
+      "thumb": "/models/bridge.png",
+      "bytes": 36344
+    },
+    {
+      "file": "building-archery.glb",
+      "label": "building archery",
+      "thumb": "/models/building-archery.png",
+      "bytes": 58632
+    },
+    {
+      "file": "building-cabin.glb",
+      "label": "building cabin",
+      "thumb": "/models/building-cabin.png",
+      "bytes": 43816
+    },
+    {
+      "file": "building-castle.glb",
+      "label": "building castle",
+      "thumb": "/models/building-castle.png",
+      "bytes": 88592
+    },
+    {
+      "file": "building-dock.glb",
+      "label": "building dock",
+      "thumb": "/models/building-dock.png",
+      "bytes": 28980
+    },
+    {
+      "file": "building-farm.glb",
+      "label": "building farm",
+      "thumb": "/models/building-farm.png",
+      "bytes": 18928
+    },
+    {
+      "file": "building-house.glb",
+      "label": "building house",
+      "thumb": "/models/building-house.png",
+      "bytes": 35452
+    },
+    {
+      "file": "building-market.glb",
+      "label": "building market",
+      "thumb": "/models/building-market.png",
+      "bytes": 52276
+    },
+    {
+      "file": "building-mill.glb",
+      "label": "building mill",
+      "thumb": "/models/building-mill.png",
+      "bytes": 48284
+    },
+    {
+      "file": "building-mine.glb",
+      "label": "building mine",
+      "thumb": "/models/building-mine.png",
+      "bytes": 32812
+    },
+    {
+      "file": "building-port.glb",
+      "label": "building port",
+      "thumb": "/models/building-port.png",
+      "bytes": 38128
+    },
+    {
+      "file": "building-sheep.glb",
+      "label": "building sheep",
+      "thumb": "/models/building-sheep.png",
+      "bytes": 71656
+    },
+    {
+      "file": "building-smelter.glb",
+      "label": "building smelter",
+      "thumb": "/models/building-smelter.png",
+      "bytes": 42872
+    },
+    {
+      "file": "building-tower.glb",
+      "label": "building tower",
+      "thumb": "/models/building-tower.png",
+      "bytes": 50916
+    },
+    {
+      "file": "building-village.glb",
+      "label": "building village",
+      "thumb": "/models/building-village.png",
+      "bytes": 40412
+    },
+    {
+      "file": "building-wall.glb",
+      "label": "building wall",
+      "thumb": "/models/building-wall.png",
+      "bytes": 64584
+    },
+    {
+      "file": "building-walls.glb",
+      "label": "building walls",
+      "thumb": "/models/building-walls.png",
+      "bytes": 108708
+    },
+    {
+      "file": "building-watermill.glb",
+      "label": "building watermill",
+      "thumb": "/models/building-watermill.png",
+      "bytes": 55712
+    },
+    {
+      "file": "building-wizard-tower.glb",
+      "label": "building wizard tower",
+      "thumb": "/models/building-wizard-tower.png",
+      "bytes": 88908
+    },
+    {
+      "file": "dirt-lumber.glb",
+      "label": "dirt lumber",
+      "thumb": "/models/dirt-lumber.png",
+      "bytes": 34920
+    },
+    {
+      "file": "dirt.glb",
+      "label": "dirt",
+      "thumb": "/models/dirt.png",
+      "bytes": 3464
+    },
+    {
+      "file": "grass-forest.glb",
+      "label": "grass forest",
+      "thumb": "/models/grass-forest.png",
+      "bytes": 45748
+    },
+    {
+      "file": "grass-hill.glb",
+      "label": "grass hill",
+      "thumb": "/models/grass-hill.png",
+      "bytes": 34204
+    },
+    {
+      "file": "grass.glb",
+      "label": "grass",
+      "thumb": "/models/grass.png",
+      "bytes": 4680
+    },
+    {
+      "file": "path-corner-sharp.glb",
+      "label": "path corner sharp",
+      "thumb": "/models/path-corner-sharp.png",
+      "bytes": 5556
+    },
+    {
+      "file": "path-corner.glb",
+      "label": "path corner",
+      "thumb": "/models/path-corner.png",
+      "bytes": 5288
+    },
+    {
+      "file": "path-crossing.glb",
+      "label": "path crossing",
+      "thumb": "/models/path-crossing.png",
+      "bytes": 9736
+    },
+    {
+      "file": "path-end.glb",
+      "label": "path end",
+      "thumb": "/models/path-end.png",
+      "bytes": 3788
+    },
+    {
+      "file": "path-intersectionA.glb",
+      "label": "path intersectionA",
+      "thumb": "/models/path-intersectionA.png",
+      "bytes": 6304
+    },
+    {
+      "file": "path-intersectionB.glb",
+      "label": "path intersectionB",
+      "thumb": "/models/path-intersectionB.png",
+      "bytes": 6212
+    },
+    {
+      "file": "path-intersectionC.glb",
+      "label": "path intersectionC",
+      "thumb": "/models/path-intersectionC.png",
+      "bytes": 6212
+    },
+    {
+      "file": "path-intersectionD.glb",
+      "label": "path intersectionD",
+      "thumb": "/models/path-intersectionD.png",
+      "bytes": 7460
+    },
+    {
+      "file": "path-intersectionE.glb",
+      "label": "path intersectionE",
+      "thumb": "/models/path-intersectionE.png",
+      "bytes": 7460
+    },
+    {
+      "file": "path-intersectionF.glb",
+      "label": "path intersectionF",
+      "thumb": "/models/path-intersectionF.png",
+      "bytes": 6848
+    },
+    {
+      "file": "path-intersectionG.glb",
+      "label": "path intersectionG",
+      "thumb": "/models/path-intersectionG.png",
+      "bytes": 8756
+    },
+    {
+      "file": "path-intersectionH.glb",
+      "label": "path intersectionH",
+      "thumb": "/models/path-intersectionH.png",
+      "bytes": 7260
+    },
+    {
+      "file": "path-square-end.glb",
+      "label": "path square end",
+      "thumb": "/models/path-square-end.png",
+      "bytes": 5076
+    },
+    {
+      "file": "path-square.glb",
+      "label": "path square",
+      "thumb": "/models/path-square.png",
+      "bytes": 6260
+    },
+    {
+      "file": "path-start.glb",
+      "label": "path start",
+      "thumb": "/models/path-start.png",
+      "bytes": 4696
+    },
+    {
+      "file": "path-straight.glb",
+      "label": "path straight",
+      "thumb": "/models/path-straight.png",
+      "bytes": 4752
+    },
+    {
+      "file": "river-corner-sharp.glb",
+      "label": "river corner sharp",
+      "thumb": "/models/river-corner-sharp.png",
+      "bytes": 12204
+    },
+    {
+      "file": "river-corner.glb",
+      "label": "river corner",
+      "thumb": "/models/river-corner.png",
+      "bytes": 12216
+    },
+    {
+      "file": "river-crossing.glb",
+      "label": "river crossing",
+      "thumb": "/models/river-crossing.png",
+      "bytes": 21368
+    },
+    {
+      "file": "river-end.glb",
+      "label": "river end",
+      "thumb": "/models/river-end.png",
+      "bytes": 8952
+    },
+    {
+      "file": "river-intersectionA.glb",
+      "label": "river intersectionA",
+      "thumb": "/models/river-intersectionA.png",
+      "bytes": 14084
+    },
+    {
+      "file": "river-intersectionB.glb",
+      "label": "river intersectionB",
+      "thumb": "/models/river-intersectionB.png",
+      "bytes": 19524
+    },
+    {
+      "file": "river-intersectionC.glb",
+      "label": "river intersectionC",
+      "thumb": "/models/river-intersectionC.png",
+      "bytes": 14108
+    },
+    {
+      "file": "river-intersectionD.glb",
+      "label": "river intersectionD",
+      "thumb": "/models/river-intersectionD.png",
+      "bytes": 17376
+    },
+    {
+      "file": "river-intersectionE.glb",
+      "label": "river intersectionE",
+      "thumb": "/models/river-intersectionE.png",
+      "bytes": 17256
+    },
+    {
+      "file": "river-intersectionF.glb",
+      "label": "river intersectionF",
+      "thumb": "/models/river-intersectionF.png",
+      "bytes": 16056
+    },
+    {
+      "file": "river-intersectionG.glb",
+      "label": "river intersectionG",
+      "thumb": "/models/river-intersectionG.png",
+      "bytes": 19740
+    },
+    {
+      "file": "river-intersectionH.glb",
+      "label": "river intersectionH",
+      "thumb": "/models/river-intersectionH.png",
+      "bytes": 16640
+    },
+    {
+      "file": "river-start.glb",
+      "label": "river start",
+      "thumb": "/models/river-start.png",
+      "bytes": 10268
+    },
+    {
+      "file": "river-straight.glb",
+      "label": "river straight",
+      "thumb": "/models/river-straight.png",
+      "bytes": 11168
+    },
+    {
+      "file": "sand-desert.glb",
+      "label": "sand desert",
+      "thumb": "/models/sand-desert.png",
+      "bytes": 25496
+    },
+    {
+      "file": "sand-rocks.glb",
+      "label": "sand rocks",
+      "thumb": "/models/sand-rocks.png",
+      "bytes": 9684
+    },
+    {
+      "file": "sand.glb",
+      "label": "sand",
+      "thumb": "/models/sand.png",
+      "bytes": 4656
+    },
+    {
+      "file": "stone-hill.glb",
+      "label": "stone hill",
+      "thumb": "/models/stone-hill.png",
+      "bytes": 13412
+    },
+    {
+      "file": "stone-mountain.glb",
+      "label": "stone mountain",
+      "thumb": "/models/stone-mountain.png",
+      "bytes": 20904
+    },
+    {
+      "file": "stone-rocks.glb",
+      "label": "stone rocks",
+      "thumb": "/models/stone-rocks.png",
+      "bytes": 24700
+    },
+    {
+      "file": "stone.glb",
+      "label": "stone",
+      "thumb": "/models/stone.png",
+      "bytes": 4656
+    },
+    {
+      "file": "unit-house.glb",
+      "label": "unit house",
+      "thumb": "/models/unit-house.png",
+      "bytes": 8804
+    },
+    {
+      "file": "unit-mansion.glb",
+      "label": "unit mansion",
+      "thumb": "/models/unit-mansion.png",
+      "bytes": 13112
+    },
+    {
+      "file": "unit-mill.glb",
+      "label": "unit mill",
+      "thumb": "/models/unit-mill.png",
+      "bytes": 23016
+    },
+    {
+      "file": "unit-ship-large.glb",
+      "label": "unit ship large",
+      "thumb": "/models/unit-ship-large.png",
+      "bytes": 17536
+    },
+    {
+      "file": "unit-ship.glb",
+      "label": "unit ship",
+      "thumb": "/models/unit-ship.png",
+      "bytes": 13268
+    },
+    {
+      "file": "unit-tower.glb",
+      "label": "unit tower",
+      "thumb": "/models/unit-tower.png",
+      "bytes": 21276
+    },
+    {
+      "file": "unit-tree.glb",
+      "label": "unit tree",
+      "thumb": "/models/unit-tree.png",
+      "bytes": 6800
+    },
+    {
+      "file": "unit-wall-tower.glb",
+      "label": "unit wall tower",
+      "thumb": "/models/unit-wall-tower.png",
+      "bytes": 16024
+    },
+    {
+      "file": "upside-down waterfall.glb",
+      "label": "upside down waterfall",
+      "thumb": "/models/upside-down%20waterfall.png",
+      "bytes": 7285120
+    },
+    {
+      "file": "water-island.glb",
+      "label": "water island",
+      "thumb": "/models/water-island.png",
+      "bytes": 9800
+    },
+    {
+      "file": "water-rocks.glb",
+      "label": "water rocks",
+      "thumb": "/models/water-rocks.png",
+      "bytes": 17256
+    },
+    {
+      "file": "water.glb",
+      "label": "water",
+      "thumb": "/models/water.png",
+      "bytes": 3468
+    }
+  ]
+}

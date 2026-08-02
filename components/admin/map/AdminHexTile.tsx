@@ -3,7 +3,7 @@ import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
-import { axialToWorld } from '@/lib/hex'
+import { axialToWorld, MODEL_SCALE } from '@/lib/hex'
 import { TileType, TerrainType } from '@/lib/types'
 
 export interface AdminTile {
@@ -29,8 +29,6 @@ export function tileColor(type: TileType): string {
   if (type === 'terrain') return '#166534'
   return '#6b7280'
 }
-
-const MODEL_SCALE = 1.72
 
 interface PlaceholderProps {
   position: [number, number, number]
@@ -62,7 +60,8 @@ interface Props {
 }
 
 function AdminHexTileModel({ tile, isSelected, isMoving, isLinkedToSelected, isBlockedByOtherStory, onClick }: Props) {
-  const { scene } = useGLTF(`/models/${tile.model}`)
+  // Model names come from the DB and have historically contained spaces.
+  const { scene } = useGLTF(`/models/${encodeURIComponent(tile.model as string)}`)
   const groupRef = useRef<THREE.Group>(null!)
 
   const cloned = useMemo(() => {
