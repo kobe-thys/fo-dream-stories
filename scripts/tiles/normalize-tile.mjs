@@ -9,6 +9,8 @@
  *                     (Kenney water/grass surfaces are at 0.100)
  *   --match-water     re-tint the artwork's water to Kenney's #8fdbff
  *   --palette-lock    remap the whole texture to Kenney's colormap palette
+ *   --rebuild-base    discard the generated base and graft on an exact hex prism
+ *                     (requires --surface; the only reliable fix for a deformed base)
  *   --dry-run         measure and report, write nothing
  *
  * WHY THE STAGE ORDER MATTERS
@@ -196,6 +198,154 @@ function trimBase(surface, target) {
   }
 }
 
+/** How close the base outline is to a regular hexagon. 0.866 is perfect. */
+function hexRegularity(plateTop) {
+  const pts = worldPositions().filter(p => p[1] <= plateTop)
+  if (!pts.length) return { ratio: 1, min: 0, max: 0 }
+  const cx = pts.reduce((s, p) => s + p[0], 0) / pts.length
+  const cz = pts.reduce((s, p) => s + p[2], 0) / pts.length
+  const bins = new Array(36).fill(0)
+  for (const p of pts) {
+    const a = Math.atan2(p[2] - cz, p[0] - cx)
+    const k = Math.min(35, Math.floor(((a * 180 / Math.PI + 360) % 360) / 10))
+    bins[k] = Math.max(bins[k], Math.hypot(p[0] - cx, p[2] - cz))
+  }
+  const seen = bins.filter(v => v > 0)
+  return { ratio: Math.min(...seen) / Math.max(...seen), min: Math.min(...seen), max: Math.max(...seen) }
+}
+
+/**
+ * Throw away the generated base and graft on an exact hex prism.
+ *
+ * Image-to-3D output does not produce regular hexagons -- measured outline
+ * regularity has been as low as 0.713 against a perfect hexagon's 0.866, and
+ * lopsided (0.40 on one side, 0.56 on the other). Scaling such a base so its
+ * widest corner is right still leaves the narrow sides ~6% short, which reads as
+ * gaps between tiles. No amount of scaling fixes a shape that is not a hexagon,
+ * so the base is rebuilt from maths instead: pointy-top, R = 0.5774, corners at
+ * 30 degrees, walls from y=0 to the surface height. The artwork above the
+ * surface is untouched.
+ *
+ * Colours are sampled from the original base and snapped to Kenney's palette, so
+ * the new prism keeps the tile's own look.
+ */
+async function rebuildBase(surface, palette) {
+  // 1. Sample the colours of the base we are about to discard.
+  const sideRGB = await sampleColour(p => p[1] < surface * 0.75, palette)
+  const topRGB = await sampleColour(p => p[1] >= surface * 0.75 && p[1] <= surface * 1.15, palette)
+
+  // 2. Drop every triangle that lies entirely below the surface.
+  let removed = 0, kept = 0
+  for (const mesh of root.listMeshes()) for (const prim of mesh.listPrimitives()) {
+    const pos = prim.getAttribute('POSITION')
+    const idx = prim.getIndices()
+    if (!pos || !idx) continue
+    const P = pos.getArray()
+    const I = idx.getArray()
+    const out = []
+    for (let t = 0; t < I.length; t += 3) {
+      const above = [0, 1, 2].some(k => P[I[t + k] * 3 + 1] > surface * 1.02)
+      if (above) { out.push(I[t], I[t + 1], I[t + 2]); kept++ } else removed++
+    }
+    idx.setArray(new (I.constructor)(out))
+  }
+
+  // 3. Build the exact prism.
+  const R = KENNEY_R
+  const corner = i => {
+    const a = (30 + i * 60) * Math.PI / 180
+    return [R * Math.cos(a), R * Math.sin(a)]
+  }
+  // Two parts, because they are not the same colour: the walls read as the
+  // tile's edge, the top cap has to read as a continuation of the artwork's own
+  // surface. Painting the cap with the wall colour leaves a visible ring around
+  // the artwork wherever the artwork does not reach the hex edge.
+  const verts = [], indices = []
+  const push = (x, y, z) => { verts.push(x, y, z); return verts.length / 3 - 1 }
+  const capVerts = [], capIndices = []
+  const pushCap = (x, y, z) => { capVerts.push(x, y, z); return capVerts.length / 3 - 1 }
+
+  // walls
+  for (let i = 0; i < 6; i++) {
+    const [x0, z0] = corner(i), [x1, z1] = corner((i + 1) % 6)
+    const a = push(x0, 0, z0), b = push(x1, 0, z1)
+    const c = push(x1, surface, z1), d = push(x0, surface, z0)
+    indices.push(a, b, c, a, c, d)
+  }
+  // bottom cap
+  const botC = push(0, 0, 0)
+  for (let i = 0; i < 6; i++) {
+    const [x0, z0] = corner(i), [x1, z1] = corner((i + 1) % 6)
+    indices.push(botC, push(x0, 0, z0), push(x1, 0, z1))
+  }
+  // top cap, tucked just under the artwork's own surface to avoid z-fighting
+  const topC = pushCap(0, surface - 0.002, 0)
+  for (let i = 0; i < 6; i++) {
+    const [x0, z0] = corner(i), [x1, z1] = corner((i + 1) % 6)
+    capIndices.push(topC, pushCap(x1, surface - 0.002, z1), pushCap(x0, surface - 0.002, z0))
+  }
+
+  const buf = root.listBuffers()[0] ?? doc.createBuffer()
+  const mat = doc.createMaterial('hexBase')
+    .setBaseColorFactor([sideRGB[0] / 255, sideRGB[1] / 255, sideRGB[2] / 255, 1])
+    .setRoughnessFactor(1).setMetallicFactor(0)
+  const prim = doc.createPrimitive()
+    .setAttribute('POSITION', doc.createAccessor().setType('VEC3')
+      .setArray(new Float32Array(verts)).setBuffer(buf))
+    .setIndices(doc.createAccessor().setType('SCALAR')
+      .setArray(new Uint32Array(indices)).setBuffer(buf))
+    .setMaterial(mat)
+
+  const capMat = doc.createMaterial('hexBaseTop')
+    .setBaseColorFactor([topRGB[0] / 255, topRGB[1] / 255, topRGB[2] / 255, 1])
+    .setRoughnessFactor(1).setMetallicFactor(0)
+  const capPrim = doc.createPrimitive()
+    .setAttribute('POSITION', doc.createAccessor().setType('VEC3')
+      .setArray(new Float32Array(capVerts)).setBuffer(buf))
+    .setIndices(doc.createAccessor().setType('SCALAR')
+      .setArray(new Uint32Array(capIndices)).setBuffer(buf))
+    .setMaterial(capMat)
+
+  const mesh = doc.createMesh('hexBase').addPrimitive(prim).addPrimitive(capPrim)
+  root.listScenes()[0].addChild(doc.createNode('hexBase').setMesh(mesh))
+
+  const hex = c => `#${c.map(v => v.toString(16).padStart(2, '0')).join('')}`
+  console.log(`  rebuild base: dropped ${removed.toLocaleString()} base triangles, kept ${kept.toLocaleString()}; prism side ${hex(sideRGB)} top ${hex(topRGB)}`)
+}
+
+/** Average texture colour of vertices matching a predicate, snapped to Kenney's palette. */
+async function sampleColour(predicate, palette) {
+  const tex = root.listTextures()[0]
+  let acc = [0, 0, 0], n = 0
+  if (tex?.getImage()) {
+    const { data, info } = await sharp(Buffer.from(tex.getImage())).ensureAlpha().raw()
+      .toBuffer({ resolveWithObject: true })
+    for (const mesh of root.listMeshes()) for (const prim of mesh.listPrimitives()) {
+      const pos = prim.getAttribute('POSITION'), uv = prim.getAttribute('TEXCOORD_0')
+      if (!pos || !uv) continue
+      const p = [0, 0, 0], t = [0, 0]
+      for (let i = 0; i < pos.getCount(); i++) {
+        pos.getElement(i, p)
+        if (!predicate(p)) continue
+        uv.getElement(i, t)
+        const x = Math.min(info.width - 1, Math.max(0, Math.round((t[0] % 1) * info.width)))
+        const y = Math.min(info.height - 1, Math.max(0, Math.round((t[1] % 1) * info.height)))
+        const o = (y * info.width + x) * 4
+        acc[0] += data[o]; acc[1] += data[o + 1]; acc[2] += data[o + 2]; n++
+      }
+    }
+  }
+  if (!n) return [150, 150, 150]
+  const avg = acc.map(v => Math.round(v / n))
+  if (!palette) return avg
+  let best = avg, bestD = Infinity
+  for (const c of palette) {
+    const d = (c[0] - avg[0]) ** 2 + (c[1] - avg[1]) ** 2 + (c[2] - avg[2]) ** 2
+    if (d < bestD) { bestD = d; best = c }
+  }
+  return best
+}
+
 /**
  * Final footprint correction, applied to X and Z only so it cannot undo the
  * height work done by trimBase.
@@ -356,8 +506,8 @@ applyCorrection({
 
 if (trisBefore > BUDGET) {
   await doc.transform(
-    dedup(), weld({ tolerance: 0.0001 }),
-    simplify({ simplifier: MeshoptSimplifier, ratio: BUDGET / trisBefore, error: 0.004, lockBorder: false }),
+    dedup(), weld({ tolerance: 0.001 }),
+    simplify({ simplifier: MeshoptSimplifier, ratio: BUDGET / trisBefore, error: 0.01, lockBorder: false }),
     prune(),
   )
 }
@@ -374,17 +524,40 @@ if (SURFACE !== null) {
   console.log(`  trim base: surface ${s.surface.toFixed(3)} -> ${SURFACE}`)
   trimBase(s.surface, SURFACE)
 }
+
+// Report how hexagonal the generated base actually is, before deciding to keep it.
+{
+  const plateTop = SURFACE !== null ? SURFACE * 1.05 : measure().surface
+  const reg = hexRegularity(plateTop)
+  const verdict = reg.ratio >= 0.82 ? 'usable' : 'DEFORMED — use --rebuild-base'
+  console.log(`  base regularity: ${reg.ratio.toFixed(3)} (perfect hexagon = 0.866) — ${verdict}`)
+}
+
+if (has('rebuild-base')) {
+  if (SURFACE === null) { console.error('--rebuild-base requires --surface'); process.exit(1) }
+  await rebuildBase(SURFACE, await kenneyPalette())
+}
 // Always the last geometry step: the footprint is what the grid depends on.
-fixFootprintXZ(SURFACE !== null ? SURFACE * 1.05 : measure().surface)
+// Skipped after --rebuild-base, whose prism is already exact by construction --
+// re-fitting would only re-introduce error from the artwork's own silhouette.
+if (!has('rebuild-base')) {
+  fixFootprintXZ(SURFACE !== null ? SURFACE * 1.05 : measure().surface)
+}
 
 if (has('match-water')) await matchWater()
 if (has('palette-lock')) await paletteLock()
 
 // PNG, not WebP -- Blender cannot reliably import EXT_texture_webp.
-await doc.transform(
-  textureCompress({ encoder: sharp, targetFormat: 'png', resize: [TEXTURE_MAX, TEXTURE_MAX] }),
-  prune(),
-)
+// Encoded by hand rather than via textureCompress so the palette option applies.
+for (const tex of root.listTextures()) {
+  const img = tex.getImage(); if (!img) continue
+  const out = await sharp(Buffer.from(img))
+    .resize(TEXTURE_MAX, TEXTURE_MAX, { fit: 'inside', withoutEnlargement: true })
+    .png({ palette: true, quality: 90, effort: 7 })
+    .toBuffer()
+  tex.setImage(new Uint8Array(out)).setMimeType('image/png')
+}
+await doc.transform(prune())
 await io.write(DST, doc)
 
 // ── verify, and fail loudly ────────────────────────────────────────────────
@@ -392,7 +565,18 @@ const after = measure()
 // Verify the footprint over the whole base plate, matching fixFootprintXZ --
 // measuring a thinner slice than the correction used would flag false failures.
 const plateTop = SURFACE !== null ? SURFACE * 1.05 : after.surface
-const plate = worldPositions().filter(p => p[1] <= plateTop)
+// With --rebuild-base the footprint IS the generated prism. Measuring every low
+// vertex instead would fold in overhanging artwork (a griffon's wing, a hull)
+// and report a false failure -- overhang is allowed, a wrong prism is not.
+const plate = has('rebuild-base')
+  ? (() => {
+      const m = root.listMeshes().find(x => x.getName() === 'hexBase')
+      const pos = m.listPrimitives()[0].getAttribute('POSITION')
+      const out = []; const v = [0, 0, 0]
+      for (let i = 0; i < pos.getCount(); i++) { pos.getElement(i, v); out.push([...v]) }
+      return out
+    })()
+  : worldPositions().filter(p => p[1] <= plateTop)
 const pcx = plate.reduce((s, p) => s + p[0], 0) / plate.length
 const pcz = plate.reduce((s, p) => s + p[2], 0) / plate.length
 let pR = 0
@@ -408,12 +592,19 @@ console.log(`output ${path.basename(DST)}`)
 console.log(`  R=${pR.toFixed(4)} centre=(${pcx.toFixed(4)},${pcz.toFixed(4)}) ymin=${after.ymin.toFixed(4)} surface=${after.surface.toFixed(3)} top=${after.ymax.toFixed(3)}`)
 console.log(`  triangles=${trisBefore.toLocaleString()} -> ${trisAfter.toLocaleString()}   size=${(fs.statSync(SRC).size / 1024).toFixed(0)}KB -> ${(fs.statSync(DST).size / 1024).toFixed(0)}KB`)
 
-if (problems.length) {
-  console.error(`\nFAILED verification:\n  - ${problems.join('\n  - ')}`)
+// A rejected tile must not be left on disk: the manifest would pick it up and it
+// would ship anyway, which defeats the point of verifying.
+function reject(msg) {
+  try { fs.unlinkSync(DST) } catch {}
+  console.error(`\n${msg}`)
+  console.error(`Removed ${path.basename(DST)} — nothing written.`)
   process.exit(1)
 }
+
+if (problems.length) reject(`FAILED verification:\n  - ${problems.join('\n  - ')}`)
 if (trisAfter > BUDGET * 1.25) {
-  console.error(`\nFAILED: ${trisAfter.toLocaleString()} triangles over budget ${BUDGET.toLocaleString()} — fragmented shells the simplifier cannot collapse. Regenerate the model.`)
-  process.exit(1)
+  reject(`FAILED: ${trisAfter.toLocaleString()} triangles over budget ${BUDGET.toLocaleString()}.\n`
+    + `  The simplifier plateaus when a mesh has many UV/normal seams — raising the error\n`
+    + `  tolerance does not help. Regenerate the model at a lower output resolution.`)
 }
 console.log('\nOK — verified against the Kenney contract.')

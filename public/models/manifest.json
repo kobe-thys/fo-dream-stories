@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-02T20:55:17.716Z",
+  "generatedAt": "2026-08-02T21:30:53.463Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
@@ -396,6 +396,12 @@
       "label": "sunken elven ship",
       "thumb": "/models/sunken-elven-ship.png",
       "bytes": 473404
+    },
+    {
+      "file": "tinkle-trunk.glb",
+      "label": "tinkle trunk",
+      "thumb": "/models/tinkle-trunk.png",
+      "bytes": 307904
     },
     {
       "file": "unit-house.glb",
