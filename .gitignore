@@ -45,3 +45,7 @@ next-env.d.ts
 # These two are large and reproducible, so they stay on disk but out of git:
 art/props/experiments/
 art/cutouts/
+
+# Python bytecode
+__pycache__/
+*.pyc

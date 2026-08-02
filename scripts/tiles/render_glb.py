@@ -68,7 +68,17 @@ def load_texture(j, b, tex_index, glb_dir=''):
     URI. The Kenney kit uses the latter -- every tile points at a sibling
     Textures/colormap.png -- so URI resolution is not optional here."""
     try:
-        img = j['images'][j['textures'][tex_index]['source']]
+        t = j['textures'][tex_index]
+        # WebP/KTX2 textures put the image index under an extension rather than
+        # 'source' -- gltf-transform emits EXT_texture_webp by default.
+        src_idx = t.get('source')
+        if src_idx is None:
+            for ext in (t.get('extensions') or {}).values():
+                if isinstance(ext, dict) and 'source' in ext:
+                    src_idx = ext['source']; break
+        if src_idx is None:
+            return None
+        img = j['images'][src_idx]
         if 'bufferView' in img:
             bv = j['bufferViews'][img['bufferView']]
             data = b[bv.get('byteOffset', 0): bv.get('byteOffset', 0) + bv['byteLength']]

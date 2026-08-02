@@ -35,6 +35,9 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@gltf-transform/core": "^4.4.2",
+    "@gltf-transform/extensions": "^4.4.2",
+    "@gltf-transform/functions": "^4.4.2",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -47,7 +50,9 @@
     "eslint-config-next": "16.2.0",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
+    "meshoptimizer": "^1.2.0",
     "shadcn": "^4.0.8",
+    "sharp": "^0.35.3",
     "tailwindcss": "^4",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
