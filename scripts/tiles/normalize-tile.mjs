@@ -231,8 +231,15 @@ function hexRegularity(plateTop) {
  */
 async function rebuildBase(surface, palette) {
   // 1. Sample the colours of the base we are about to discard.
-  const sideRGB = await sampleColour(p => p[1] < surface * 0.75, palette)
-  const topRGB = await sampleColour(p => p[1] >= surface * 0.75 && p[1] <= surface * 1.15, palette)
+  //    Sample the OUTER wall, not everything below the surface: these models are
+  //    hollow underneath, and averaging in that dark cavity turns a tan or grassy
+  //    band into grey. Likewise take the top colour from the surface's outer ring,
+  //    since the middle is occupied by the artwork itself.
+  const rad = p => Math.hypot(p[0], p[2])
+  const sideRGB = await sampleColour(
+    p => p[1] > surface * 0.15 && p[1] < surface * 0.9 && rad(p) > KENNEY_R * 0.75, palette)
+  const topRGB = await sampleColour(
+    p => p[1] >= surface * 0.9 && p[1] <= surface * 1.2 && rad(p) > KENNEY_R * 0.5, palette)
 
   // 2. Drop every triangle that lies entirely below the surface.
   let removed = 0, kept = 0

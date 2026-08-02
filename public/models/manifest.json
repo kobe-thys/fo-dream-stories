@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-02T21:30:53.463Z",
+  "generatedAt": "2026-08-02T21:39:39.864Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
@@ -137,13 +137,13 @@
       "file": "dragon-mountain-sea.glb",
       "label": "dragon mountain sea",
       "thumb": "/models/dragon-mountain-sea.png",
-      "bytes": 388048
+      "bytes": 299260
     },
     {
       "file": "dragon-mountain.glb",
       "label": "dragon mountain",
       "thumb": "/models/dragon-mountain.png",
-      "bytes": 504148
+      "bytes": 390860
     },
     {
       "file": "grass-forest.glb",
@@ -389,19 +389,19 @@
       "file": "sun-cave.glb",
       "label": "sun cave",
       "thumb": "/models/sun-cave.png",
-      "bytes": 432904
+      "bytes": 340560
     },
     {
       "file": "sunken-elven-ship.glb",
       "label": "sunken elven ship",
       "thumb": "/models/sunken-elven-ship.png",
-      "bytes": 473404
+      "bytes": 370400
     },
     {
       "file": "tinkle-trunk.glb",
       "label": "tinkle trunk",
       "thumb": "/models/tinkle-trunk.png",
-      "bytes": 307904
+      "bytes": 307908
     },
     {
       "file": "unit-house.glb",
