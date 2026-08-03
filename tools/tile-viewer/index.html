@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tile Contact Sheet</title>
+<style>
+  :root {
+    --bg: #14161c;
+    --panel: #1c1f27;
+    --line: #2c313d;
+    --text: #e6e8ee;
+    --dim: #8b93a5;
+    --ok: #4ade80;
+    --bad: #f87171;
+    --warn: #fbbf24;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 13px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: grid; grid-template-columns: 320px 1fr; overflow: hidden;
+  }
+  aside {
+    background: var(--panel); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; min-height: 0;
+  }
+  header { padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  h1 { font-size: 14px; margin: 0 0 4px; letter-spacing: .01em; }
+  .sub { color: var(--dim); font-size: 11px; }
+  .controls { padding: 12px 16px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  button {
+    background: #262b36; color: var(--text); border: 1px solid var(--line);
+    border-radius: 6px; padding: 5px 9px; font: inherit; font-size: 11px; cursor: pointer;
+  }
+  button:hover { background: #303646; }
+  button[aria-pressed="true"] { background: #38405a; border-color: #4d5878; color: #fff; }
+  .stats { padding: 10px 16px; border-bottom: 1px solid var(--line); font-size: 11px; color: var(--dim); }
+  .stats b { color: var(--text); font-weight: 600; }
+  .list { overflow-y: auto; flex: 1; min-height: 0; }
+  .item {
+    padding: 7px 16px; border-bottom: 1px solid #232733; cursor: pointer;
+    display: grid; grid-template-columns: 8px 1fr auto; gap: 8px; align-items: baseline;
+  }
+  .item:hover { background: #232833; }
+  .item.sel { background: #2b3242; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; align-self: center; }
+  .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dims { font-variant-numeric: tabular-nums; font-size: 10px; color: var(--dim); }
+  .item.bad .nm { color: var(--bad); }
+  main { position: relative; min-width: 0; }
+  canvas { display: block; }
+  #tip {
+    position: absolute; pointer-events: none; background: #0d0f14ee; border: 1px solid var(--line);
+    border-radius: 6px; padding: 7px 9px; font-size: 11px; display: none; white-space: pre;
+    font-variant-numeric: tabular-nums;
+  }
+  #load {
+    position: absolute; inset: 0; display: grid; place-content: center; gap: 10px;
+    background: var(--bg); text-align: center;
+  }
+  .bar { width: 240px; height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--ok); transition: width .15s; }
+  .legend { padding: 10px 16px; font-size: 10px; color: var(--dim); border-top: 1px solid var(--line); }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; margin-right: 10px; }
+</style>
+</head>
+<body>
+<aside>
+  <header>
+    <h1>Tile Contact Sheet</h1>
+    <div class="sub">All GLBs on the hex grid, measured against the geometry contract.</div>
+  </header>
+
+  <div class="controls">
+    <div class="row">
+      <button id="btnAll" aria-pressed="true">All</button>
+      <button id="btnBad" aria-pressed="false">Off-spec only</button>
+    </div>
+    <div class="row">
+      <button id="btnTight" aria-pressed="false">Tight packing</button>
+      <button id="btnHex" aria-pressed="true">Ideal hex outline</button>
+    </div>
+    <div class="row">
+      <button id="btnTop">Top view</button>
+      <button id="btnAngle">Angle view</button>
+      <button id="btnFit">Fit all</button>
+    </div>
+  </div>
+
+  <div class="stats" id="stats">Loading…</div>
+  <div class="list" id="list"></div>
+  <div class="legend">
+    <span><i class="dot" style="background:var(--ok)"></i> on spec</span>
+    <span><i class="dot" style="background:var(--bad)"></i> off spec</span>
+    <span><i class="dot" style="background:var(--warn)"></i> failed to load</span>
+  </div>
+</aside>
+
+<main>
+  <div id="tip"></div>
+  <div id="load"><div>Loading models…</div><div class="bar"><i id="barFill"></i></div><div class="sub" id="loadTxt"></div></div>
+</main>
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/jsm/" } }
+</script>
+
+<script type="module">
+import * as THREE from 'three'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+
+// ── Geometry contract (see CLAUDE.md — measured, do not re-derive) ──────────
+const R = 0.5774                       // Kenney hex circumradius, pointy-top
+const IDEAL_W = Math.sqrt(3) * R       // 1.0001  footprint across flats (x)
+const IDEAL_D = 2 * R                  // 1.1548  footprint point-to-point (z)
+const X_SPACING = Math.sqrt(3) * R
+const Z_SPACING = 1.5 * R
+const TOL_XZ = 0.02                    // 2cm at model scale 1
+const TOL_Y  = 0.01                    // base must sit on y=0
+
+const MODELS_BASE = '/public/models/'
+const COLS = 10
+
+// ── Scene ──────────────────────────────────────────────────────────────────
+const main = document.querySelector('main')
+const scene = new THREE.Scene()
+scene.background = new THREE.Color(0x14161c)
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 500)
+const renderer = new THREE.WebGLRenderer({ antialias: true })
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
+main.appendChild(renderer.domElement)
+
+const controls = new OrbitControls(camera, renderer.domElement)
+controls.enableDamping = true
+
+scene.add(new THREE.HemisphereLight(0xcfd8ff, 0x2a2f3a, 2.2))
+const key = new THREE.DirectionalLight(0xffffff, 1.9)
+key.position.set(4, 9, 5)
+scene.add(key)
+const rim = new THREE.DirectionalLight(0xffffff, 0.5)
+rim.position.set(-5, 4, -4)
+scene.add(rim)
+
+function resize() {
+  const w = main.clientWidth, h = main.clientHeight
+  renderer.setSize(w, h, false)
+  camera.aspect = w / h
+  camera.updateProjectionMatrix()
+}
+addEventListener('resize', resize)
+
+// ── Ideal hex outline, for eyeballing footprint accuracy ───────────────────
+function idealHexOutline() {
+  const pts = []
+  for (let k = 0; k <= 6; k++) {
+    const a = THREE.MathUtils.degToRad(30 + 60 * k)   // pointy-top: corners at 30° mod 60
+    pts.push(new THREE.Vector3(R * Math.cos(a), 0.002, R * Math.sin(a)))
+  }
+  return new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color: 0x6ee7ff, transparent: true, opacity: 0.75 })
+  )
+}
+
+// Measure the BASE footprint (vertices at the bottom face), not the whole model —
+// art on top may legitimately overhang the hex (tree canopy, waterfall spill).
+function measureBase(model) {
+  model.updateWorldMatrix(true, true)
+  const v = new THREE.Vector3()
+  let minY = Infinity, maxY = -Infinity
+  let fx0 = Infinity, fx1 = -Infinity, fz0 = Infinity, fz1 = -Infinity
+
+  const meshes = []
+  model.traverse(o => { if (o.isMesh && o.geometry?.attributes?.position) meshes.push(o) })
+
+  for (const o of meshes) {
+    const pos = o.geometry.attributes.position
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld)
+      if (v.y < minY) minY = v.y
+      if (v.y > maxY) maxY = v.y
+      if (v.x < fx0) fx0 = v.x
+      if (v.x > fx1) fx1 = v.x
+      if (v.z < fz0) fz0 = v.z
+      if (v.z > fz1) fz1 = v.z
+    }
+  }
+  if (!isFinite(minY)) throw new Error('no geometry')
+
+  // Distance normalised to the ideal pointy-top hexagon: 1.0 == exactly on the edge,
+  // regardless of angle. Lets us separate the hex prism from art that overhangs it.
+  const K = Math.PI / 3
+  const EDGE = R * Math.cos(Math.PI / 6)
+  const hexR = (x, z) => {
+    const a = Math.atan2(z, x)
+    const aa = ((a + Math.PI / 6) % K + K) % K - K / 2
+    return Math.hypot(x, z) * Math.cos(aa) / EDGE
+  }
+
+  const cutoff = minY + 0.02
+  let bx0 = Infinity, bx1 = -Infinity, bz0 = Infinity, bz1 = -Infinity
+  let maxHex = 0, onRing = 0, band = 0, over = 0
+  for (const o of meshes) {
+    const pos = o.geometry.attributes.position
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld)
+      if (v.y > cutoff) continue
+      band++
+      if (v.x < bx0) bx0 = v.x
+      if (v.x > bx1) bx1 = v.x
+      if (v.z < bz0) bz0 = v.z
+      if (v.z > bz1) bz1 = v.z
+      const hr = hexR(v.x, v.z)
+      if (hr > maxHex) maxHex = hr
+      if (Math.abs(hr - 1) < 0.03) onRing++
+      if (hr > 1.02) over++
+    }
+  }
+  return {
+    minY, h: maxY - minY,
+    fullW: fx1 - fx0, fullD: fz1 - fz0,
+    baseW: bx1 - bx0, baseD: bz1 - bz0,
+    overhang: maxHex,                       // 1.0 = flush with the hex edge
+    overhangFrac: band ? over / band : 0,   // share of ground-level verts outside it
+    hasRing: onRing >= 6,                   // an actual hex prism ring is present
+  }
+}
+
+function labelSprite(text, bad) {
+  const c = document.createElement('canvas')
+  c.width = 512; c.height = 64
+  const g = c.getContext('2d')
+  g.fillStyle = bad ? '#f87171' : '#c9d1e2'
+  g.font = '600 30px ui-sans-serif, system-ui, sans-serif'
+  g.textAlign = 'center'; g.textBaseline = 'middle'
+  g.fillText(text, 256, 34)
+  const t = new THREE.CanvasTexture(c)
+  t.colorSpace = THREE.SRGBColorSpace
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false }))
+  s.scale.set(1.5, 0.19, 1)
+  return s
+}
+
+// ── Load ───────────────────────────────────────────────────────────────────
+const loader = new GLTFLoader()
+const tiles = []          // { file, label, group, w, d, h, minY, bad, reasons, failed }
+const roots = new THREE.Group()
+scene.add(roots)
+
+const barFill = document.getElementById('barFill')
+const loadTxt = document.getElementById('loadTxt')
+
+const manifest = await (await fetch(MODELS_BASE + 'manifest.json')).json()
+const entries = manifest.models
+
+let done = 0
+for (const entry of entries) {
+  const group = new THREE.Group()
+  const rec = { file: entry.file, label: entry.label || entry.file, group, reasons: [] }
+
+  try {
+    const gltf = await loader.loadAsync(MODELS_BASE + encodeURIComponent(entry.file))
+    const model = gltf.scene
+    group.add(model)
+
+    Object.assign(rec, measureBase(model))
+
+    // Decals (paths, ~0.025 tall) and unit props are not hex tiles — the contract
+    // does not apply to them, so they are reported separately rather than as failures.
+    rec.isTile = rec.h > 0.1 && rec.baseW > 0.8 && rec.baseD > 0.9
+
+    // A tile FAILS only if its hex prism is missing or off the ground. Art that
+    // overhangs the hex at ground level (roots, rocks, spilling water) is a
+    // separate, informational concern — it causes visual overlap, not a bad base.
+    if (rec.isTile) {
+      if (!rec.hasRing)                 rec.reasons.push('no hex ring at the base — prism missing or deformed')
+      if (Math.abs(rec.minY) > TOL_Y)   rec.reasons.push(`base sits at y ${rec.minY.toFixed(3)}, not 0`)
+    }
+    rec.bad = rec.reasons.length > 0
+    rec.overlaps = rec.isTile && !rec.bad && rec.overhang > 1.10
+  } catch (err) {
+    rec.failed = true; rec.bad = true
+    rec.reasons.push('failed to load: ' + (err?.message || err))
+    const ph = new THREE.Mesh(
+      new THREE.CylinderGeometry(R, R, 0.2, 6),
+      new THREE.MeshStandardMaterial({ color: 0xfbbf24, wireframe: true })
+    )
+    ph.rotation.y = Math.PI / 6
+    ph.position.y = 0.1
+    group.add(ph)
+  }
+
+  group.add(idealHexOutline())
+  const lab = labelSprite(rec.label, rec.bad)
+  lab.position.set(0, (rec.h || 0.4) + 0.22, 0)
+  group.add(lab)
+  rec.labelSprite = lab
+
+  roots.add(group)
+  tiles.push(rec)
+
+  done++
+  barFill.style.width = (done / entries.length * 100) + '%'
+  loadTxt.textContent = `${done} / ${entries.length} — ${entry.file}`
+}
+
+document.getElementById('load').remove()
+
+// ── Layout ─────────────────────────────────────────────────────────────────
+let spread = 1.18            // >1 separates tiles for readability
+let showHex = true
+let badOnly = false
+
+function layout() {
+  const visible = tiles.filter(t => !badOnly || t.bad)
+  tiles.forEach(t => { t.group.visible = false })
+  visible.forEach((t, i) => {
+    const row = Math.floor(i / COLS), col = i % COLS
+    t.group.visible = true
+    t.group.position.set(
+      X_SPACING * spread * (col + (row % 2) * 0.5),
+      0,
+      Z_SPACING * spread * row
+    )
+  })
+  return visible
+}
+
+function fit() {
+  const visible = tiles.filter(t => t.group.visible)
+  if (!visible.length) return
+  const box = new THREE.Box3()
+  visible.forEach(t => box.expandByObject(t.group))
+  const c = box.getCenter(new THREE.Vector3())
+  const s = box.getSize(new THREE.Vector3())
+  const dist = Math.max(s.x, s.z) * 0.85 + 4
+  controls.target.copy(c)
+  camera.position.set(c.x, c.y + dist * 0.75, c.z + dist * 0.75)
+  camera.updateProjectionMatrix()
+}
+
+// ── Sidebar ────────────────────────────────────────────────────────────────
+const listEl = document.getElementById('list')
+let selected = null
+
+function renderList() {
+  const shown = tiles.filter(t => !badOnly || t.bad)
+  listEl.innerHTML = ''
+  for (const t of shown) {
+    const el = document.createElement('div')
+    el.className = 'item' + (t.bad ? ' bad' : '')
+    const color = t.failed ? 'var(--warn)' : t.bad ? 'var(--bad)' : !t.isTile ? 'var(--dim)' : 'var(--ok)'
+    el.innerHTML =
+      `<i class="dot" style="background:${color}"></i>` +
+      `<span class="nm" title="${t.file}">${t.label}</span>` +
+      `<span class="dims">${t.failed ? '—' : `${t.baseW.toFixed(2)}×${t.baseD.toFixed(2)}`}</span>`
+    el.onclick = () => focusTile(t, el)
+    listEl.appendChild(el)
+  }
+  const real = tiles.filter(t => t.isTile && !t.failed)
+  const bad = tiles.filter(t => t.bad).length
+  const props = tiles.filter(t => !t.isTile && !t.failed).length
+  document.getElementById('stats').innerHTML =
+    `<b>${real.length}</b> hex tiles · <b style="color:var(--ok)">${real.length - bad}</b> on spec · ` +
+    `<b style="color:var(--bad)">${bad}</b> off spec · <b>${props}</b> props/decals<br>` +
+    `contract: base ${IDEAL_W.toFixed(3)} × ${IDEAL_D.toFixed(3)}, sitting on y=0`
+}
+
+function focusTile(t, el) {
+  if (!t.group.visible) return
+  selected = t
+  ;[...listEl.children].forEach(c => c.classList.remove('sel'))
+  el?.classList.add('sel')
+  const p = t.group.position
+  controls.target.set(p.x, 0.3, p.z)
+  camera.position.set(p.x + 2.2, 2.0, p.z + 2.2)
+}
+
+// ── Hover tooltip ──────────────────────────────────────────────────────────
+const tip = document.getElementById('tip')
+const ray = new THREE.Raycaster()
+const ptr = new THREE.Vector2()
+
+renderer.domElement.addEventListener('pointermove', e => {
+  const r = renderer.domElement.getBoundingClientRect()
+  ptr.x = ((e.clientX - r.left) / r.width) * 2 - 1
+  ptr.y = -((e.clientY - r.top) / r.height) * 2 + 1
+  ray.setFromCamera(ptr, camera)
+  const hit = ray.intersectObjects(roots.children.filter(g => g.visible), true)[0]
+  if (!hit) { tip.style.display = 'none'; return }
+  let g = hit.object
+  while (g.parent && g.parent !== roots) g = g.parent
+  const t = tiles.find(x => x.group === g)
+  if (!t) { tip.style.display = 'none'; return }
+  tip.style.display = 'block'
+  tip.style.left = (e.clientX - r.left + 14) + 'px'
+  tip.style.top = (e.clientY - r.top + 14) + 'px'
+  tip.textContent = t.failed
+    ? `${t.label}\n${t.reasons.join('\n')}`
+    : `${t.label}\n` +
+      `base  ${t.baseW.toFixed(3)} × ${t.baseD.toFixed(3)}\n` +
+      `full  ${t.fullW.toFixed(3)} × ${t.fullD.toFixed(3)}   h ${t.h.toFixed(3)}\n` +
+      `sits at y ${t.minY.toFixed(3)}\n` +
+      (!t.isTile ? '· prop / decal — hex contract N/A'
+        : t.reasons.length ? '⚠ ' + t.reasons.join('\n⚠ ') : '✓ on spec')
+})
+renderer.domElement.addEventListener('pointerleave', () => { tip.style.display = 'none' })
+
+// ── Controls ───────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id)
+function press(el, on) { el.setAttribute('aria-pressed', String(on)) }
+
+$('btnAll').onclick = () => { badOnly = false; press($('btnAll'), true); press($('btnBad'), false); layout(); renderList(); fit() }
+$('btnBad').onclick = () => { badOnly = true;  press($('btnAll'), false); press($('btnBad'), true);  layout(); renderList(); fit() }
+$('btnTight').onclick = e => {
+  const on = e.target.getAttribute('aria-pressed') !== 'true'
+  press(e.target, on); spread = on ? 1.0 : 1.18; layout(); fit()
+}
+$('btnHex').onclick = e => {
+  showHex = e.target.getAttribute('aria-pressed') !== 'true'
+  press(e.target, showHex)
+  tiles.forEach(t => t.group.children.forEach(c => { if (c.isLine) c.visible = showHex }))
+}
+$('btnTop').onclick = () => {
+  const c = controls.target
+  camera.position.set(c.x, c.y + 14, c.z + 0.001)
+}
+$('btnAngle').onclick = () => {
+  const c = controls.target
+  camera.position.set(c.x + 7, c.y + 7, c.z + 7)
+}
+$('btnFit').onclick = fit
+
+// ── Go ─────────────────────────────────────────────────────────────────────
+resize()
+layout()
+renderList()
+fit()
+
+renderer.setAnimationLoop(() => {
+  controls.update()
+  renderer.render(scene, camera)
+})
+</script>
+</body>
+</html>

@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-08-02T21:39:39.864Z",
+  "generatedAt": "2026-08-03T17:12:11.185Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
       "label": "0   mother tree2",
       "thumb": "/models/0%20-%20mother%20tree2.png",
-      "bytes": 5536288
+      "bytes": 5040572
     },
     {
       "file": "bridge.glb",
@@ -146,6 +146,12 @@
       "bytes": 390860
     },
     {
+      "file": "enid-kingdom.glb",
+      "label": "enid kingdom",
+      "thumb": "/models/enid-kingdom.png",
+      "bytes": 5240076
+    },
+    {
       "file": "grass-forest.glb",
       "label": "grass forest",
       "thumb": "/models/grass-forest.png",
@@ -162,6 +168,18 @@
       "label": "grass",
       "thumb": "/models/grass.png",
       "bytes": 4680
+    },
+    {
+      "file": "griffon-shell.glb",
+      "label": "griffon shell",
+      "thumb": "/models/griffon-shell.png",
+      "bytes": 4618324
+    },
+    {
+      "file": "once-in-a-lifetime-portal.glb",
+      "label": "once in a lifetime portal",
+      "thumb": "/models/once-in-a-lifetime-portal.png",
+      "bytes": 337972
     },
     {
       "file": "path-corner-sharp.glb",
@@ -258,6 +276,12 @@
       "label": "path straight",
       "thumb": "/models/path-straight.png",
       "bytes": 4752
+    },
+    {
+      "file": "raindrop-castle.glb",
+      "label": "raindrop castle",
+      "thumb": "/models/raindrop-castle.png",
+      "bytes": 3625968
     },
     {
       "file": "river-corner-sharp.glb",
@@ -398,6 +422,12 @@
       "bytes": 370400
     },
     {
+      "file": "syrup-tree.glb",
+      "label": "syrup tree",
+      "thumb": "/models/syrup-tree.png",
+      "bytes": 338348
+    },
+    {
       "file": "tinkle-trunk.glb",
       "label": "tinkle trunk",
       "thumb": "/models/tinkle-trunk.png",
@@ -455,7 +485,7 @@
       "file": "upside-down waterfall.glb",
       "label": "upside down waterfall",
       "thumb": "/models/upside-down%20waterfall.png",
-      "bytes": 7285120
+      "bytes": 539104
     },
     {
       "file": "water-island.glb",

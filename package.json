@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "jest",
     "models:manifest": "ts-node --compilerOptions '{\"module\":\"commonjs\"}' scripts/generate-model-manifest.ts",
-    "prebuild": "npm run models:manifest"
+    "prebuild": "npm run models:manifest",
+    "viewer:vendor": "mkdir -p tools/tile-viewer/vendor/jsm/loaders tools/tile-viewer/vendor/jsm/controls tools/tile-viewer/vendor/jsm/utils && cp node_modules/three/build/three.module.js tools/tile-viewer/vendor/ && cp node_modules/three/examples/jsm/loaders/GLTFLoader.js tools/tile-viewer/vendor/jsm/loaders/ && cp node_modules/three/examples/jsm/controls/OrbitControls.js tools/tile-viewer/vendor/jsm/controls/ && cp node_modules/three/examples/jsm/utils/BufferGeometryUtils.js node_modules/three/examples/jsm/utils/SkeletonUtils.js tools/tile-viewer/vendor/jsm/utils/"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",

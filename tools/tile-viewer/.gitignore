@@ -1,0 +1,2 @@
+# Vendored three.js — duplicated from node_modules, restore with `npm run viewer:vendor`
+vendor/
