@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-04T11:13:14.260Z",
+  "generatedAt": "2026-08-04T11:45:28.902Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
@@ -137,19 +137,19 @@
       "file": "dragon-mountain-sea.glb",
       "label": "dragon mountain sea",
       "thumb": "/models/dragon-mountain-sea.png",
-      "bytes": 299260
+      "bytes": 298824
     },
     {
       "file": "dragon-mountain.glb",
       "label": "dragon mountain",
       "thumb": "/models/dragon-mountain.png",
-      "bytes": 390860
+      "bytes": 390428
     },
     {
       "file": "enid-kingdom.glb",
       "label": "enid kingdom",
       "thumb": "/models/enid-kingdom.png",
-      "bytes": 5240076
+      "bytes": 5239640
     },
     {
       "file": "grass-forest.glb",
@@ -173,13 +173,13 @@
       "file": "griffon-shell.glb",
       "label": "griffon shell",
       "thumb": "/models/griffon-shell.png",
-      "bytes": 4618324
+      "bytes": 4617888
     },
     {
       "file": "once-in-a-lifetime-portal.glb",
       "label": "once in a lifetime portal",
       "thumb": "/models/once-in-a-lifetime-portal.png",
-      "bytes": 337972
+      "bytes": 337536
     },
     {
       "file": "path-corner-sharp.glb",
@@ -281,7 +281,7 @@
       "file": "raindrop-castle.glb",
       "label": "raindrop castle",
       "thumb": "/models/raindrop-castle.png",
-      "bytes": 3625968
+      "bytes": 3625536
     },
     {
       "file": "river-corner-sharp.glb",
@@ -413,25 +413,25 @@
       "file": "sun-cave.glb",
       "label": "sun cave",
       "thumb": "/models/sun-cave.png",
-      "bytes": 340560
+      "bytes": 340124
     },
     {
       "file": "sunken-elven-ship.glb",
       "label": "sunken elven ship",
       "thumb": "/models/sunken-elven-ship.png",
-      "bytes": 370400
+      "bytes": 369964
     },
     {
       "file": "syrup-tree.glb",
       "label": "syrup tree",
       "thumb": "/models/syrup-tree.png",
-      "bytes": 338348
+      "bytes": 337912
     },
     {
       "file": "tinkle-trunk.glb",
       "label": "tinkle trunk",
       "thumb": "/models/tinkle-trunk.png",
-      "bytes": 307908
+      "bytes": 307472
     },
     {
       "file": "unit-house.glb",

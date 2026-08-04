@@ -1,10 +1,11 @@
 'use client'
-import { Suspense } from 'react'
+import { Suspense, useRef } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Environment } from '@react-three/drei'
 import { MappedTile } from '@/lib/types'
 import DreamerHexTile from './DreamerHexTile'
 import MapCompass from './MapCompass'
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 
 interface DreamerMapCanvasProps {
   tiles: MappedTile[]
@@ -13,6 +14,7 @@ interface DreamerMapCanvasProps {
 }
 
 export default function DreamerMapCanvas({ tiles, selectedTileId, onTileClick }: DreamerMapCanvasProps) {
+  const controlsRef = useRef<OrbitControlsImpl | null>(null)
   const cx = 0
   const cz = 0
 
@@ -38,6 +40,7 @@ export default function DreamerMapCanvas({ tiles, selectedTileId, onTileClick }:
           <Environment preset="sunset" />
 
           <OrbitControls
+            ref={controlsRef}
             makeDefault
             target={[cx, 0, cz]}
             enableRotate={true}
@@ -61,9 +64,11 @@ export default function DreamerMapCanvas({ tiles, selectedTileId, onTileClick }:
             ))
           }
 
-          <MapCompass />
         </Suspense>
       </Canvas>
+
+      {/* Outside the Canvas so it stays fixed to the viewport when the map pans. */}
+      <MapCompass controlsRef={controlsRef} />
     </div>
   )
 }

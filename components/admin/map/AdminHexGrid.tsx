@@ -1,10 +1,11 @@
 'use client'
-import { Suspense, useMemo, useCallback } from 'react'
+import { Suspense, useMemo, useCallback, useRef } from 'react'
 import { Canvas, type ThreeEvent } from '@react-three/fiber'
 import { OrbitControls, Environment, ContactShadows } from '@react-three/drei'
 import { worldToAxial } from '@/lib/hex'
 import AdminHexTile, { AdminTile } from './AdminHexTile'
 import MapCompass from '@/components/map/MapCompass'
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 
 interface Props {
   tiles: AdminTile[]
@@ -22,6 +23,8 @@ export default function AdminHexGrid({
   tiles, selectedTileId, isMoving, isLinkingMode, linkedTileIds, allUnlocks,
   onTileClick, onEmptyClick, onDeselect,
 }: Props) {
+  const controlsRef = useRef<OrbitControlsImpl | null>(null)
+
   const tilePositions = useMemo(
     () => new Set(tiles.map(t => `${t.position_q},${t.position_r}`)),
     [tiles]
@@ -38,7 +41,7 @@ export default function AdminHexGrid({
   }, [tilePositions, isLinkingMode, onEmptyClick])
 
   return (
-    <div style={{ width: '100%', height: '100%' }}>
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <Canvas
         shadows
         camera={{ position: [15, 15, 15], fov: 35 }}
@@ -48,7 +51,7 @@ export default function AdminHexGrid({
           <ambientLight intensity={1} />
           <directionalLight position={[10, 20, 10]} intensity={1.2} castShadow />
           <Environment preset="city" />
-          <OrbitControls makeDefault />
+          <OrbitControls ref={controlsRef} makeDefault />
 
           {tiles.map(tile => {
             const isLinkedToSelected = isLinkingMode && linkedTileIds.has(tile.id)
@@ -85,9 +88,11 @@ export default function AdminHexGrid({
 
           <ContactShadows position={[0, -0.01, 0]} opacity={0.3} scale={50} blur={2} />
 
-          <MapCompass />
         </Suspense>
       </Canvas>
+
+      {/* Outside the Canvas so it stays fixed to the viewport when the map pans. */}
+      <MapCompass controlsRef={controlsRef} />
     </div>
   )
 }

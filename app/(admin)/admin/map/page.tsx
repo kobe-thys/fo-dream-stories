@@ -75,7 +75,9 @@ export default function AdminMapPage() {
       return
     }
 
-    setSelectedTile(tile)
+    // Clicking the selected tile again clears the selection. Previously the only
+    // way to deselect was to place a throwaway tile and delete it.
+    setSelectedTile(prev => (prev?.id === tile.id ? null : tile))
     setIsMoving(false)
   }
 
