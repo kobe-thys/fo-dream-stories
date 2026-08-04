@@ -270,10 +270,10 @@ export default function NormalizerPage() {
         {jobs.length === 0 && <p className="text-xs text-gray-500">Nothing yet.</p>}
         {jobs.map(j => (
           <div key={j.id} className="border border-gray-800 rounded-xl p-4 flex gap-4 bg-gray-900/30">
+            {/* next/image does not work with Supabase Storage URLs — project
+                convention is a plain <img>, see CLAUDE.md. */}
             {j.preview_url
-              // eslint-disable-next-line @next/next/no-img-element -- next/image
-              // does not work with Supabase Storage URLs; project convention is a
-              // plain <img> (see CLAUDE.md).
+              // eslint-disable-next-line @next/next/no-img-element
               ? <img src={j.preview_url} alt="" className="w-32 h-32 object-contain bg-gray-950 rounded-lg border border-gray-800" />
               : <div className="w-32 h-32 grid place-content-center bg-gray-950 rounded-lg border border-gray-800 text-[11px] text-gray-600">no preview</div>}
 
