@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-04T12:18:55.467Z",
+  "generatedAt": "2026-08-04T12:30:38.146Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
@@ -431,7 +431,7 @@
       "file": "tinkle-trunk.glb",
       "label": "tinkle trunk",
       "thumb": "/models/tinkle-trunk.png",
-      "bytes": 305748
+      "bytes": 436772
     },
     {
       "file": "unit-house.glb",
