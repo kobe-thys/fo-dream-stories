@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-08-04T12:30:38.146Z",
+  "generatedAt": "2026-08-04T12:52:43.085Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
       "label": "0   mother tree2",
       "thumb": "/models/0%20-%20mother%20tree2.png",
-      "bytes": 5040572
+      "bytes": 5040588
     },
     {
       "file": "bridge.glb",
@@ -137,19 +137,19 @@
       "file": "dragon-mountain-sea.glb",
       "label": "dragon mountain sea",
       "thumb": "/models/dragon-mountain-sea.png",
-      "bytes": 299056
+      "bytes": 299076
     },
     {
       "file": "dragon-mountain.glb",
       "label": "dragon mountain",
       "thumb": "/models/dragon-mountain.png",
-      "bytes": 390644
+      "bytes": 390664
     },
     {
       "file": "enid-kingdom.glb",
       "label": "enid kingdom",
       "thumb": "/models/enid-kingdom.png",
-      "bytes": 5234232
+      "bytes": 5234252
     },
     {
       "file": "grass-forest.glb",
@@ -173,13 +173,13 @@
       "file": "griffon-shell.glb",
       "label": "griffon shell",
       "thumb": "/models/griffon-shell.png",
-      "bytes": 4618324
+      "bytes": 4618340
     },
     {
       "file": "once-in-a-lifetime-portal.glb",
       "label": "once in a lifetime portal",
       "thumb": "/models/once-in-a-lifetime-portal.png",
-      "bytes": 337636
+      "bytes": 337652
     },
     {
       "file": "path-corner-sharp.glb",
@@ -281,7 +281,7 @@
       "file": "raindrop-castle.glb",
       "label": "raindrop castle",
       "thumb": "/models/raindrop-castle.png",
-      "bytes": 3587776
+      "bytes": 3587792
     },
     {
       "file": "river-corner-sharp.glb",
@@ -413,25 +413,25 @@
       "file": "sun-cave.glb",
       "label": "sun cave",
       "thumb": "/models/sun-cave.png",
-      "bytes": 339612
+      "bytes": 339632
     },
     {
       "file": "sunken-elven-ship.glb",
       "label": "sunken elven ship",
       "thumb": "/models/sunken-elven-ship.png",
-      "bytes": 370400
+      "bytes": 370420
     },
     {
       "file": "syrup-tree.glb",
       "label": "syrup tree",
       "thumb": "/models/syrup-tree.png",
-      "bytes": 337912
+      "bytes": 337932
     },
     {
       "file": "tinkle-trunk.glb",
       "label": "tinkle trunk",
       "thumb": "/models/tinkle-trunk.png",
-      "bytes": 436772
+      "bytes": 436404
     },
     {
       "file": "unit-house.glb",
@@ -485,7 +485,7 @@
       "file": "upside-down waterfall.glb",
       "label": "upside down waterfall",
       "thumb": "/models/upside-down%20waterfall.png",
-      "bytes": 539100
+      "bytes": 539120
     },
     {
       "file": "water-island.glb",
