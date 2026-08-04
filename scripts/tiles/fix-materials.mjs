@@ -1,7 +1,7 @@
 /**
  * Bring generated tile materials in line with the Kenney kit.
  *
- *   node scripts/tiles/fix-materials.mjs <tile.glb> [--base-top=#48c1a3] [--base-side=#6a7087] [--keep-metallic]
+ *   node scripts/tiles/fix-materials.mjs <tile.glb> [--base-top=#48c1a3] [--base-side=#f1976c] [--keep-side] [--keep-metallic]
  *
  * WHY
  * glTF defaults metallicFactor to 1.0 when it is absent. Every image-to-3D export
@@ -29,6 +29,11 @@ if (!SRC) {
   process.exit(1)
 }
 
+// Kenney's dirt colour, measured off dirt.glb's top face and the skirt beneath
+// grass.glb. Every stock tile shows this band under its surface, so a generated
+// tile whose prism keeps a sampled colour reads as foreign next to them.
+const KENNEY_DIRT = '#f1976c'
+
 const srgbToLinear = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
 function hexToLinear(hex) {
   const n = parseInt(hex.replace('#', ''), 16)
@@ -39,7 +44,8 @@ const io = new NodeIO().registerExtensions(ALL_EXTENSIONS)
 const doc = await io.read(SRC)
 
 const topHex = flag('base-top')
-const sideHex = flag('base-side')
+// Default the prism side to Kenney dirt; --keep-side leaves whatever was sampled.
+const sideHex = has('keep-side') ? null : (flag('base-side') || KENNEY_DIRT)
 let metal = 0, painted = 0
 
 for (const mat of doc.getRoot().listMaterials()) {

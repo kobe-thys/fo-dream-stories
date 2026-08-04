@@ -33,11 +33,15 @@ interface Job {
 // Kenney surface colours, measured off the kit — the usual choices for a base top.
 const BASE_COLOURS = [
   { label: 'Grass',  hex: '#48c1a3' },
+  { label: 'Dirt',   hex: '#f1976c' },
   { label: 'Water',  hex: '#8fdbff' },
   { label: 'Sand',   hex: '#e6cfa1' },
   { label: 'Stone',  hex: '#9fa3b5' },
-  { label: 'Dirt',   hex: '#be9b8b' },
 ]
+
+// The skirt under every Kenney tile. Default for generated tiles so they sit in
+// the same world as the stock ones.
+const KENNEY_DIRT = '#f1976c'
 
 // Measured off the Kenney kit — see the tile geometry contract in CLAUDE.md.
 const SURFACES = [
@@ -340,12 +344,14 @@ function AdjustPanel({
   onDecide: (id: string, status: 'accepted' | 'failed') => void
 }) {
   const [topColor, setTopColor] = useState<string | null>(job.base_top_color)
+  const [sideColor, setSideColor] = useState<string | null>(job.base_side_color)
   const [shiftX, setShiftX] = useState(String(job.shift_x ?? 0))
   const [shiftZ, setShiftZ] = useState(String(job.shift_z ?? 0))
   const [pct, setPct] = useState(String(Math.round(((job.top_scale ?? 1) - 1) * 100)))
 
   const dirty =
     topColor !== job.base_top_color ||
+    sideColor !== job.base_side_color ||
     Number(shiftX) !== (job.shift_x ?? 0) ||
     Number(shiftZ) !== (job.shift_z ?? 0) ||
     Number(pct) !== Math.round(((job.top_scale ?? 1) - 1) * 100)
@@ -375,6 +381,16 @@ function AdjustPanel({
         </button>
       </div>
 
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[11px] text-gray-400 w-24">Base side</span>
+        {BASE_COLOURS.map(c => (
+          <button key={c.hex} title={`${c.label} ${c.hex}`} onClick={() => setSideColor(c.hex)}
+            className={`w-6 h-6 rounded border-2 ${(sideColor ?? KENNEY_DIRT) === c.hex ? 'border-white' : 'border-gray-700'}`}
+            style={{ background: c.hex }} />
+        ))}
+        <span className="text-[11px] text-gray-600">defaults to dirt, like every Kenney tile</span>
+      </div>
+
       <div className="flex items-end gap-3 flex-wrap">
         <label className="text-[11px] text-gray-400">
           Shift X
@@ -392,6 +408,7 @@ function AdjustPanel({
           disabled={!dirty || !valid}
           onClick={() => onApply(job, {
             base_top_color: topColor,
+            base_side_color: sideColor,
             shift_x: num(shiftX),
             shift_z: num(shiftZ),
             top_scale: 1 + num(pct) / 100,
@@ -403,7 +420,7 @@ function AdjustPanel({
         {dirty && (
           <button
             onClick={() => {
-              setTopColor(job.base_top_color)
+              setTopColor(job.base_top_color); setSideColor(job.base_side_color)
               setShiftX(String(job.shift_x ?? 0)); setShiftZ(String(job.shift_z ?? 0))
               setPct(String(Math.round(((job.top_scale ?? 1) - 1) * 100)))
             }}
