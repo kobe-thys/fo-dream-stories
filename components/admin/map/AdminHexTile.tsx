@@ -4,6 +4,7 @@ import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { axialToWorld, MODEL_SCALE } from '@/lib/hex'
+import { modelUrl } from '@/lib/models'
 import { TileType, TerrainType } from '@/lib/types'
 
 export interface AdminTile {
@@ -61,7 +62,9 @@ interface Props {
 
 function AdminHexTileModel({ tile, isSelected, isMoving, isLinkedToSelected, isBlockedByOtherStory, onClick }: Props) {
   // Model names come from the DB and have historically contained spaces.
-  const { scene } = useGLTF(`/models/${encodeURIComponent(tile.model as string)}`)
+  // modelUrl adds a content-hash cache-buster so a re-normalized tile actually
+  // reloads instead of being served from the browser / useGLTF cache.
+  const { scene } = useGLTF(modelUrl(tile.model as string))
   const groupRef = useRef<THREE.Group>(null!)
 
   const cloned = useMemo(() => {

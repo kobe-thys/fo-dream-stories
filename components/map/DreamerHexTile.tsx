@@ -4,6 +4,7 @@ import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { MappedTile } from '@/lib/types'
+import { modelUrl } from '@/lib/models'
 import { axialToWorld, MODEL_SCALE } from '@/lib/hex'
 import TileErrorBoundary from './TileErrorBoundary'
 
@@ -29,7 +30,9 @@ function PlaceholderTile({ tile, isSelected, onClick }: DreamerHexTileProps) {
 
 function DreamerHexTileModel({ tile, isSelected, onClick }: DreamerHexTileProps) {
   // Model names come from the DB and have historically contained spaces.
-  const modelPath = `/models/${encodeURIComponent(tile.model as string)}`
+  // modelUrl adds a content-hash cache-buster so a re-normalized tile actually
+  // reloads instead of being served from the browser / useGLTF cache.
+  const modelPath = modelUrl(tile.model as string)
   const { scene } = useGLTF(modelPath)
   const groupRef = useRef<THREE.Group>(null!)
   const timeRef = useRef(0)

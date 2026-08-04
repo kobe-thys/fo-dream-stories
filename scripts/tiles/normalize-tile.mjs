@@ -5,6 +5,8 @@
  *
  *   --budget=N        triangle budget (default 8000)
  *   --texture=N       max texture edge in px (default 1024)
+ *   --base-top=Y      where the base plate ends in the SOURCE model. Give this for
+ *                     tall models (trees) -- the automatic guess picks canopy.
  *   --surface=Y       trim the base so the tile's main surface sits at height Y
  *                     (Kenney water/grass surfaces are at 0.100)
  *   --match-water     re-tint the artwork's water to Kenney's #8fdbff
@@ -50,6 +52,10 @@ if (!SRC) {
 const BUDGET = Number(flag('budget', 8000))
 const TEXTURE_MAX = Number(flag('texture', 1024))
 const SURFACE = flag('surface', null) === null ? null : Number(flag('surface', null))
+// Where the base plate ENDS in the source model. Optional, but the dominant-band
+// heuristic guesses badly on tall models -- on a big tree the densest band is
+// canopy, which scaled the mother tree 6% small and made syrup-tree delete itself.
+const BASE_TOP = flag('base-top', null) === null ? null : Number(flag('base-top', null))
 
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS)
 const doc = await io.read(SRC)
@@ -528,8 +534,10 @@ bakeTransforms()
 
 if (SURFACE !== null) {
   const s = measure()
-  console.log(`  trim base: surface ${s.surface.toFixed(3)} -> ${SURFACE}`)
-  trimBase(s.surface, SURFACE)
+  const from = BASE_TOP !== null ? BASE_TOP : s.surface
+  const how = BASE_TOP !== null ? ' (--base-top)' : ' (auto)'
+  console.log(`  trim base: surface ${from.toFixed(3)}${how} -> ${SURFACE}`)
+  trimBase(from, SURFACE)
 }
 
 // Report how hexagonal the generated base actually is, before deciding to keep it.
@@ -567,6 +575,50 @@ for (const tex of root.listTextures()) {
 await doc.transform(prune())
 await io.write(DST, doc)
 
+/**
+ * Height of the topmost DENSE ring of vertices at the hex rim = top of the solid
+ * base plate. The prism wall is a closed ring of many vertices at one height,
+ * while decoration out at the rim is sparse -- so this ignores a wing or a wall
+ * that a bounding box or a rim maximum would latch onto. Reproduces all five
+ * Kenney references exactly (grass/sand/stone 0.200, water/dirt 0.100), which is
+ * the evidence it measures the right thing.
+ */
+function ringPlateTop() {
+  // With --rebuild-base the plate is its own mesh, so read it exactly rather than
+  // inferring. Necessary for dense tiles: enid-kingdom has 6,622 rim vertices with
+  // walls at every height, and the ring heuristic latched onto 0.740.
+  if (has('rebuild-base')) {
+    const m = root.listMeshes().find(x => x.getName() === 'hexBase')
+    if (m) {
+      const pos = m.listPrimitives()[0].getAttribute('POSITION')
+      const v = [0, 0, 0]; let top = -Infinity
+      for (let i = 0; i < pos.getCount(); i++) { pos.getElement(i, v); if (v[1] > top) top = v[1] }
+      if (isFinite(top)) return top
+    }
+  }
+  const EDGE = KENNEY_R * Math.cos(Math.PI / 6), K = Math.PI / 3
+  const hexR = (x, z) => {
+    const a = Math.atan2(z, x)
+    const aa = ((a + Math.PI / 6) % K + K) % K - K / 2
+    return Math.hypot(x, z) * Math.cos(aa) / EDGE
+  }
+  const rim = worldPositions().filter(p => {
+    const h = hexR(p[0], p[2]); return h > 0.93 && h < 1.06
+  })
+  if (!rim.length) return null
+  const bins = new Map()
+  for (const p of rim) {
+    const k = Math.round(p[1] / 0.005) * 0.005
+    bins.set(k, (bins.get(k) || 0) + 1)
+  }
+  const peak = Math.max(...bins.values())
+  let best = null
+  for (const [y, c] of bins) {
+    if (c >= Math.max(3, peak * 0.25) && y > 0.02 && (best === null || y > best)) best = y
+  }
+  return best
+}
+
 // ── verify, and fail loudly ────────────────────────────────────────────────
 const after = measure()
 // Verify the footprint over the whole base plate, matching fixFootprintXZ --
@@ -593,10 +645,16 @@ const problems = []
 if (Math.abs(pR - KENNEY_R) > TOLERANCE) problems.push(`footprint R=${pR.toFixed(4)}, want ${KENNEY_R}`)
 if (Math.abs(pcx) > TOLERANCE || Math.abs(pcz) > TOLERANCE) problems.push(`off-centre (${pcx.toFixed(4)},${pcz.toFixed(4)})`)
 if (Math.abs(after.ymin) > TOLERANCE) problems.push(`base not at y=0 (${after.ymin.toFixed(4)})`)
-if (SURFACE !== null && Math.abs(after.surface - SURFACE) > 0.02) problems.push(`surface at ${after.surface.toFixed(3)}, want ${SURFACE}`)
+const ringTop = ringPlateTop()
+if (SURFACE !== null) {
+  // Check the rim ring, not the densest band: post-trim the densest band can be
+  // canopy (syrup-tree measured 0.534 against a 0.2 target and was deleted).
+  const got = ringTop ?? after.surface
+  if (Math.abs(got - SURFACE) > 0.02) problems.push(`plate top at ${got.toFixed(3)}, want ${SURFACE}`)
+}
 
 console.log(`output ${path.basename(DST)}`)
-console.log(`  R=${pR.toFixed(4)} centre=(${pcx.toFixed(4)},${pcz.toFixed(4)}) ymin=${after.ymin.toFixed(4)} surface=${after.surface.toFixed(3)} top=${after.ymax.toFixed(3)}`)
+console.log(`  R=${pR.toFixed(4)} centre=(${pcx.toFixed(4)},${pcz.toFixed(4)}) ymin=${after.ymin.toFixed(4)} plateTop=${ringTop === null ? 'n/a' : ringTop.toFixed(3)} top=${after.ymax.toFixed(3)}`)
 console.log(`  triangles=${trisBefore.toLocaleString()} -> ${trisAfter.toLocaleString()}   size=${(fs.statSync(SRC).size / 1024).toFixed(0)}KB -> ${(fs.statSync(DST).size / 1024).toFixed(0)}KB`)
 
 // A rejected tile must not be left on disk: the manifest would pick it up and it

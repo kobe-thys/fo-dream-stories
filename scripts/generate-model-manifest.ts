@@ -12,12 +12,21 @@
  */
 import fs from 'fs'
 import path from 'path'
+import crypto from 'crypto'
 
 interface ModelEntry {
   file: string       // "grass.glb"
   label: string      // "grass"
   thumb: string|null // "/models/grass.png" when a sibling PNG exists
   bytes: number
+  hash: string       // short content hash — cache-buster for the model URL
+}
+
+// Model filenames never change when we re-normalize a tile, so browsers and
+// drei's useGLTF cache both keep serving the old geometry. Appending a content
+// hash to the URL makes an updated tile a different resource, so it just appears.
+function shortHash(buf: Buffer): string {
+  return crypto.createHash('sha1').update(buf).digest('hex').slice(0, 8)
 }
 
 const modelsDir = path.join(process.cwd(), 'public', 'models')
@@ -35,6 +44,7 @@ const models: ModelEntry[] = files.map(file => {
       ? `/models/${encodeURIComponent(thumbFile)}`
       : null,
     bytes: fs.statSync(path.join(modelsDir, file)).size,
+    hash: shortHash(fs.readFileSync(path.join(modelsDir, file))),
   }
 })
 
