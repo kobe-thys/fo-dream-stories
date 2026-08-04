@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-04T16:20:13.944Z",
+  "generatedAt": "2026-08-04T20:58:22.857Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
@@ -212,11 +212,25 @@
       "hash": "182c16a7"
     },
     {
+      "file": "grass-path-corner-sharp-tree.glb",
+      "label": "grass path corner sharp tree",
+      "thumb": "/models/grass-path-corner-sharp-tree.png",
+      "bytes": 21484,
+      "hash": "b8115931"
+    },
+    {
       "file": "grass-path-corner-sharp.glb",
       "label": "grass path corner sharp",
       "thumb": "/models/grass-path-corner-sharp.png",
       "bytes": 17448,
       "hash": "a4707f6b"
+    },
+    {
+      "file": "grass-path-corner-tree.glb",
+      "label": "grass path corner tree",
+      "thumb": "/models/grass-path-corner-tree.png",
+      "bytes": 21304,
+      "hash": "97e7df6d"
     },
     {
       "file": "grass-path-corner.glb",
@@ -233,11 +247,25 @@
       "hash": "e8edfdcf"
     },
     {
+      "file": "grass-path-end-tree.glb",
+      "label": "grass path end tree",
+      "thumb": "/models/grass-path-end-tree.png",
+      "bytes": 20280,
+      "hash": "444569d2"
+    },
+    {
       "file": "grass-path-end.glb",
       "label": "grass path end",
       "thumb": "/models/grass-path-end.png",
       "bytes": 16248,
       "hash": "594eba15"
+    },
+    {
+      "file": "grass-path-intersectionA-tree.glb",
+      "label": "grass path intersectionA tree",
+      "thumb": "/models/grass-path-intersectionA-tree.png",
+      "bytes": 21988,
+      "hash": "0dabf40e"
     },
     {
       "file": "grass-path-intersectionA.glb",
@@ -247,11 +275,25 @@
       "hash": "cc18bb3b"
     },
     {
+      "file": "grass-path-intersectionB-tree.glb",
+      "label": "grass path intersectionB tree",
+      "thumb": "/models/grass-path-intersectionB-tree.png",
+      "bytes": 21956,
+      "hash": "9499b9f9"
+    },
+    {
       "file": "grass-path-intersectionB.glb",
       "label": "grass path intersectionB",
       "thumb": "/models/grass-path-intersectionB.png",
       "bytes": 17908,
       "hash": "6d4b3031"
+    },
+    {
+      "file": "grass-path-intersectionC-tree.glb",
+      "label": "grass path intersectionC tree",
+      "thumb": "/models/grass-path-intersectionC-tree.png",
+      "bytes": 21960,
+      "hash": "e8d28fb4"
     },
     {
       "file": "grass-path-intersectionC.glb",
@@ -261,11 +303,25 @@
       "hash": "d7dde26d"
     },
     {
+      "file": "grass-path-intersectionD-tree.glb",
+      "label": "grass path intersectionD tree",
+      "thumb": "/models/grass-path-intersectionD-tree.png",
+      "bytes": 22808,
+      "hash": "8e54581e"
+    },
+    {
       "file": "grass-path-intersectionD.glb",
       "label": "grass path intersectionD",
       "thumb": "/models/grass-path-intersectionD.png",
       "bytes": 18752,
       "hash": "41410dbf"
+    },
+    {
+      "file": "grass-path-intersectionE-tree.glb",
+      "label": "grass path intersectionE tree",
+      "thumb": "/models/grass-path-intersectionE-tree.png",
+      "bytes": 22808,
+      "hash": "f04c1d79"
     },
     {
       "file": "grass-path-intersectionE.glb",
@@ -275,6 +331,13 @@
       "hash": "71ec5a6b"
     },
     {
+      "file": "grass-path-intersectionF-tree.glb",
+      "label": "grass path intersectionF tree",
+      "thumb": "/models/grass-path-intersectionF-tree.png",
+      "bytes": 22368,
+      "hash": "2712703d"
+    },
+    {
       "file": "grass-path-intersectionF.glb",
       "label": "grass path intersectionF",
       "thumb": "/models/grass-path-intersectionF.png",
@@ -282,11 +345,25 @@
       "hash": "0454c260"
     },
     {
+      "file": "grass-path-intersectionG-tree.glb",
+      "label": "grass path intersectionG tree",
+      "thumb": "/models/grass-path-intersectionG-tree.png",
+      "bytes": 23676,
+      "hash": "d0ee1811"
+    },
+    {
       "file": "grass-path-intersectionG.glb",
       "label": "grass path intersectionG",
       "thumb": "/models/grass-path-intersectionG.png",
       "bytes": 19632,
       "hash": "b6610066"
+    },
+    {
+      "file": "grass-path-intersectionH-tree.glb",
+      "label": "grass path intersectionH tree",
+      "thumb": "/models/grass-path-intersectionH-tree.png",
+      "bytes": 22672,
+      "hash": "128f4262"
     },
     {
       "file": "grass-path-intersectionH.glb",
@@ -310,11 +387,25 @@
       "hash": "83d5c005"
     },
     {
+      "file": "grass-path-start-tree.glb",
+      "label": "grass path start tree",
+      "thumb": "/models/grass-path-start-tree.png",
+      "bytes": 20916,
+      "hash": "b00b39a6"
+    },
+    {
       "file": "grass-path-start.glb",
       "label": "grass path start",
       "thumb": "/models/grass-path-start.png",
       "bytes": 16864,
       "hash": "f185db78"
+    },
+    {
+      "file": "grass-path-straight-tree.glb",
+      "label": "grass path straight tree",
+      "thumb": "/models/grass-path-straight-tree.png",
+      "bytes": 20972,
+      "hash": "5e9e5bb2"
     },
     {
       "file": "grass-path-straight.glb",
