@@ -46,6 +46,62 @@ async function setStatus(id, patch) {
   if (error) log('  ! status update failed:', error.message)
 }
 
+/**
+ * Compose two models already in public/models into one tile, then preview.
+ * Seconds rather than minutes — no simplification, no texture work, just a merge.
+ */
+async function compose(job) {
+  if (!NAME_RE.test(job.output_name)) {
+    return setStatus(job.id, { status: 'failed', log: `unsafe output_name: ${job.output_name}` })
+  }
+  await setStatus(job.id, { status: 'running', log: null })
+  log(`composing ${job.base_model} + ${job.overlay_model} -> ${job.output_name}`)
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'tilejob-'))
+  const out = path.join(tmp, job.output_name)
+  try {
+    // Resolve by BASENAME inside public/models — never join a path from the row.
+    const base = path.join(MODELS, path.basename(String(job.base_model)))
+    const overlay = path.join(MODELS, path.basename(String(job.overlay_model)))
+    if (!fs.existsSync(base)) throw new Error(`base not found: ${job.base_model}`)
+    if (!fs.existsSync(overlay)) throw new Error(`overlay not found: ${job.overlay_model}`)
+
+    const r = await run('node', [
+      path.join(REPO, 'scripts/tiles/compose-tile.mjs'), base, overlay, out,
+      `--dx=${Number(job.shift_x) || 0}`,
+      `--dz=${Number(job.shift_z) || 0}`,
+      `--rot=${Math.round(Number(job.overlay_rot) || 0)}`,
+    ], { cwd: REPO, maxBuffer: 16 * 1024 * 1024, timeout: 10 * 60_000 })
+
+    const png = out.replace(/\.glb$/i, '.png')
+    await run('python3', [path.join(REPO, 'scripts/tiles/render_glb.py'), out, png],
+              { cwd: REPO, timeout: 15 * 60_000 })
+
+    const up = await db.storage.from('tile-previews')
+      .upload(`${job.id}.png`, fs.readFileSync(png), { contentType: 'image/png', upsert: true })
+    if (up.error) throw new Error(`preview upload failed: ${up.error.message}`)
+    const { data: pub } = db.storage.from('tile-previews').getPublicUrl(`${job.id}.png`)
+
+    fs.copyFileSync(out, path.join(os.tmpdir(), `tilejob-${job.id}.glb`))
+    fs.copyFileSync(png, path.join(os.tmpdir(), `tilejob-${job.id}.png`))
+
+    const tris = /([\d,]+) tris/.exec(r.stdout)?.[1]?.replace(/,/g, '')
+    await setStatus(job.id, {
+      status: 'preview_ready',
+      preview_url: `${pub.publicUrl}?t=${Date.now()}`,
+      log: (r.stdout + r.stderr).trim().split('\n').slice(-8).join('\n'),
+      triangles: tris ? Number(tris) : null,
+      bytes: fs.statSync(out).size,
+    })
+    log('  compose preview ready')
+  } catch (e) {
+    log(`  compose FAILED: ${e.message}`)
+    await setStatus(job.id, { status: 'failed', log: String(e.message).slice(0, 4000) })
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true })
+  }
+}
+
 /** Normalize a queued job and publish a preview for review. */
 async function normalize(job) {
   if (!NAME_RE.test(job.output_name)) {
@@ -169,6 +225,9 @@ async function adjust(job) {
     if (/^#[0-9a-fA-F]{6}$/.test(job.base_side_color || '')) matArgs.push(`--base-side=${job.base_side_color}`)
     await run('node', matArgs, { cwd: REPO })
 
+    // Composed tiles have no hexBase mesh, so adjust-tile has nothing to anchor
+    // against; re-compose instead by editing the job's shift and re-queueing.
+    if (job.kind === 'compose') throw new Error('use Re-compose to move a composed overlay')
     await run('node', [
       path.join(REPO, 'scripts/tiles/adjust-tile.mjs'), cached,
       `--shift-x=${Number(job.shift_x) || 0}`,
@@ -228,7 +287,7 @@ async function tick() {
   if (error) { log('poll error:', error.message); return }
   const job = data?.[0]
   if (!job) return
-  if (job.status === 'queued') await normalize(job)
+  if (job.status === 'queued') await (job.kind === 'compose' ? compose(job) : normalize(job))
   else if (job.status === 'adjust') await adjust(job)
   else await install(job)
 }

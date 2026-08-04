@@ -71,6 +71,11 @@ def flag(n,d):
 GROUND=flag('ground','#48c1a3')
 LIGHTEN=float(flag('lighten-brown','0.38'))
 GY_LO=float(flag('ground-lo','0.12')); GY_HI=float(flag('ground-hi','0.32'))
+# Skirt: the tile's outer wall. Tiles built before --rebuild-base have no separate
+# base mesh, so their sides live in the artwork texture and can only be reached by
+# masking the geometry that forms the rim.
+SKIRT=flag('skirt',None)
+SKIRT_TOP=float(flag('skirt-top','0.21'))
 NORMAL_MIN=float(flag('normal-min','0.6'))
 # Trunk mask threshold, independent of the ground mask so widening one does not
 # starve the other of texels.
@@ -87,11 +92,18 @@ md=ImageDraw.Draw(mask)
 # so a hue-based rule skips it; the shadow is baked into the generated texture.
 above=Image.new('1',(W,H),0)
 ad=ImageDraw.Draw(above)
+skirt=Image.new('1',(W,H),0)
+sd=ImageDraw.Draw(skirt)
+
+R_HEX=0.5774; EDGE=R_HEX*math.cos(math.pi/6); KSEC=math.pi/3
+def hexr(x,z):
+    a=math.atan2(z,x); aa=((a+math.pi/6)%KSEC+KSEC)%KSEC-KSEC/2
+    return math.hypot(x,z)*math.cos(aa)/EDGE
 
 # ── rasterise UV triangles of ground-facing faces into the mask ────────────
-tris_total=tris_ground=0
+tris_total=tris_ground=tris_skirt=0
 def walk(ni,par):
-    global tris_total,tris_ground
+    global tris_total,tris_ground,tris_skirt
     n=j['nodes'][ni]; m=mat_mul(par,nodemat(n))
     if 'mesh' in n:
         for pr in j['meshes'][n['mesh']].get('primitives',[]):
@@ -106,6 +118,16 @@ def walk(ni,par):
                 tris_total+=1
                 pa,pb,pc=pos[a],pos[b],pos[c]
                 ys=[pa[1],pb[1],pc[1]]
+                # Outer wall: out at the rim, near-vertical, below the surface.
+                if SKIRT and max(ys) <= SKIRT_TOP:
+                    rr=[hexr(pa[0],pa[2]),hexr(pb[0],pb[2]),hexr(pc[0],pc[2])]
+                    ux2,uy2,uz2=(pb[0]-pa[0],pb[1]-pa[1],pb[2]-pa[2])
+                    vx2,vy2,vz2=(pc[0]-pa[0],pc[1]-pa[1],pc[2]-pa[2])
+                    ny2=uz2*vx2-ux2*vz2
+                    ln2=math.sqrt((uy2*vz2-uz2*vy2)**2+ny2**2+(ux2*vy2-uy2*vx2)**2) or 1
+                    if min(rr) > 0.80 and abs(ny2/ln2) < 0.6:
+                        tris_skirt+=1
+                        sd.polygon([(uv[a][0]*W,uv[a][1]*H),(uv[b][0]*W,uv[b][1]*H),(uv[c][0]*W,uv[c][1]*H)],fill=1)
                 if min(ys) > TRUNK_LO:
                     ad.polygon([(uv[a][0]*W,uv[a][1]*H),(uv[b][0]*W,uv[b][1]*H),(uv[c][0]*W,uv[c][1]*H)],fill=1)
                 if not all(GY_LO<=y<=GY_HI for y in ys): continue
@@ -126,14 +148,21 @@ for r in sc.get('nodes',[]): walk(r,mat_ident())
 MaxFilter=__import__('PIL.ImageFilter',fromlist=['MaxFilter']).MaxFilter
 mask=mask.filter(MaxFilter(5))
 above=above.filter(MaxFilter(3))
+skirt=skirt.filter(MaxFilter(3))
 
 # ── apply ──────────────────────────────────────────────────────────────────
-px=img.load(); mk=mask.load(); ab=above.load()
+px=img.load(); mk=mask.load(); ab=above.load(); sk=skirt.load()
+sr=sg=sb=0
+if SKIRT: sr,sg,sb=(int(SKIRT[1:3],16),int(SKIRT[3:5],16),int(SKIRT[5:7],16))
+skirted=0
 DARKLIFT=float(flag('dark-lift','0.42'))
 painted=lightened=lifted=0
 for y in range(H):
     for x in range(W):
         r,g,b=px[x,y]
+        if SKIRT and sk[x,y]:
+            px[x,y]=(sr,sg,sb); skirted+=1
+            continue
         if mk[x,y]:
             px[x,y]=(gr,gg,gb); painted+=1
             continue
@@ -156,6 +185,7 @@ for y in range(H):
             px[x,y]=(nr,ng,nb); lightened+=1
 
 img.save(DST)
-print(f'  triangles {tris_total:,}, ground-facing {tris_ground:,}')
+print(f'  triangles {tris_total:,}, ground-facing {tris_ground:,}, skirt {tris_skirt:,}')
+if SKIRT: print(f'  skirt {100*skirted/(W*H):.1f}% -> {SKIRT}')
 print(f'  painted {100*painted/(W*H):.1f}% {GROUND}, lightened {100*lightened/(W*H):.1f}% (browns), lifted {100*lifted/(W*H):.1f}% (dark trunk)')
 print(f'  -> {DST}')

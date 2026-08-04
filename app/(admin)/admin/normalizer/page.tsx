@@ -23,6 +23,10 @@ interface Job {
   measured_plate_top: number | null
   triangles: number | null
   bytes: number | null
+  kind: string
+  base_model: string | null
+  overlay_model: string | null
+  overlay_rot: number
   base_top_color: string | null
   base_side_color: string | null
   shift_x: number
@@ -65,6 +69,14 @@ export default function NormalizerPage() {
   const [matchWater, setMatchWater] = useState(false)
   const [rebuildBase, setRebuildBase] = useState(true)
   const [paletteLock, setPaletteLock] = useState(true)
+  const [tab, setTab] = useState<'normalize' | 'compose'>('normalize')
+  const [modelFiles, setModelFiles] = useState<string[]>([])
+  const [cBase, setCBase] = useState('grass.glb')
+  const [cOverlay, setCOverlay] = useState('unit-tree.glb')
+  const [cName, setCName] = useState('')
+  const [cDx, setCDx] = useState('0')
+  const [cDz, setCDz] = useState('0')
+  const [cRot, setCRot] = useState('0')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -72,6 +84,11 @@ export default function NormalizerPage() {
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/tile-jobs')
     if (res.ok) setJobs(await res.json())
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/admin/models').then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setModelFiles(d) }).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -122,6 +139,34 @@ export default function NormalizerPage() {
     }
   }
 
+  async function submitCompose() {
+    if (!cName) return
+    setBusy(true); setError(null)
+    try {
+      const res = await fetch('/api/admin/tile-jobs', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kind: 'compose', output_name: cName,
+          base_model: cBase, overlay_model: cOverlay,
+          shift_x: Number(cDx) || 0, shift_z: Number(cDz) || 0, overlay_rot: Number(cRot) || 0,
+        }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error || 'Could not queue the compose')
+      setCName('')
+      load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally { setBusy(false) }
+  }
+
+  async function recompose(job: Job, patch: { shift_x: number; shift_z: number; overlay_rot: number }) {
+    await fetch('/api/admin/tile-jobs', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: job.id, status: 'queued', ...patch }),
+    })
+    load()
+  }
+
   async function decide(id: string, status: 'accepted' | 'failed') {
     await fetch('/api/admin/tile-jobs', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -166,8 +211,72 @@ export default function NormalizerPage() {
         </p>
       </div>
 
+      <div className="flex gap-2">
+        {(['normalize', 'compose'] as const).map(t => (
+          <button key={t} onClick={() => setTab(t)}
+            className={`px-4 py-1.5 rounded-lg text-xs border ${tab === t
+              ? 'bg-purple-900 border-purple-600 text-purple-100'
+              : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'}`}>
+            {t === 'normalize' ? 'Normalize a generated GLB' : 'Compose from existing tiles'}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'compose' && (
+        <div className="border border-gray-800 rounded-xl p-5 space-y-4 bg-gray-900/40">
+          <p className="text-xs text-gray-400">
+            Stack an overlay onto a tile — a tree beside a path, a tower on a crossing.
+            Both come from the models already installed, so this takes seconds.
+          </p>
+          <div className="grid grid-cols-3 gap-4">
+            <label className="block">
+              <span className="text-xs text-gray-400">Base tile</span>
+              <select value={cBase} onChange={e => setCBase(e.target.value)}
+                className="mt-1 w-full bg-gray-950 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-gray-100">
+                {modelFiles.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-xs text-gray-400">Overlay</span>
+              <select value={cOverlay} onChange={e => setCOverlay(e.target.value)}
+                className="mt-1 w-full bg-gray-950 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-gray-100">
+                {modelFiles.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-xs text-gray-400">Output name</span>
+              <input value={cName} onChange={e => setCName(e.target.value)}
+                placeholder="grass-path-straight-tower.glb"
+                className="mt-1 w-full bg-gray-950 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-gray-100" />
+            </label>
+          </div>
+          <div className="flex items-end gap-3 flex-wrap">
+            <label className="text-[11px] text-gray-400">Shift X
+              <input value={cDx} onChange={e => setCDx(e.target.value)}
+                className="block mt-0.5 w-20 bg-gray-950 border border-gray-700 rounded px-2 py-1 text-xs text-gray-100 font-mono" /></label>
+            <label className="text-[11px] text-gray-400">Shift Z
+              <input value={cDz} onChange={e => setCDz(e.target.value)}
+                className="block mt-0.5 w-20 bg-gray-950 border border-gray-700 rounded px-2 py-1 text-xs text-gray-100 font-mono" /></label>
+            <label className="text-[11px] text-gray-400">Rotation (×60°)
+              <select value={cRot} onChange={e => setCRot(e.target.value)}
+                className="block mt-0.5 w-20 bg-gray-950 border border-gray-700 rounded px-2 py-1 text-xs text-gray-100 font-mono">
+                {[0,1,2,3,4,5].map(r => <option key={r} value={r}>{r}</option>)}
+              </select></label>
+            <button onClick={submitCompose} disabled={!cName || busy}
+              className="px-4 py-2 bg-purple-700 text-white rounded-lg text-sm hover:bg-purple-600 disabled:opacity-40">
+              {busy ? 'Queueing…' : 'Compose'}
+            </button>
+          </div>
+          <p className="text-[11px] text-gray-600">
+            The overlay is lifted onto the base&apos;s surface automatically. +X moves it toward
+            the lower-right of the preview, +Z toward the lower-left. Units are tile widths.
+          </p>
+          {error && <div className="text-xs text-red-400">{error}</div>}
+        </div>
+      )}
+
       {/* ── new job ── */}
-      <div className="border border-gray-800 rounded-xl p-5 space-y-4 bg-gray-900/40">
+      <div className={`border border-gray-800 rounded-xl p-5 space-y-4 bg-gray-900/40 ${tab === 'compose' ? 'hidden' : ''}`}>
         <div className="grid grid-cols-2 gap-4">
           <label className="block">
             <span className="text-xs text-gray-400">Source GLB</span>
@@ -304,7 +413,9 @@ export default function NormalizerPage() {
                 </pre>
               )}
               {j.status === 'preview_ready' && (
-                <AdjustPanel
+                j.kind === 'compose' ? (
+                  <ComposePanel job={j} onRecompose={recompose} onDecide={decide} />
+                ) : <AdjustPanel
                   // Remount when the APPLIED values change, so the fields resync
                   // after a re-preview. Unchanged values keep the key stable, so
                   // the 4s poll never clobbers what is being typed.
@@ -438,6 +549,70 @@ function AdjustPanel({
         {!valid && <span className="text-red-400"> Value out of range.</span>}
       </p>
 
+      <div className="flex gap-2">
+        <button onClick={() => onDecide(job.id, 'accepted')}
+          className="px-3 py-1.5 bg-green-800 text-green-100 rounded-lg text-xs hover:bg-green-700">
+          Install &amp; deploy
+        </button>
+        <button onClick={() => onDecide(job.id, 'failed')}
+          className="px-3 py-1.5 bg-gray-800 text-gray-300 border border-gray-700 rounded-lg text-xs hover:bg-gray-700">
+          Discard
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Controls for a composed tile.
+ *
+ * Composed tiles have no hexBase mesh, so adjust-tile.mjs has nothing to anchor a
+ * nudge against. Re-composing from the two source models instead is both correct
+ * and cheap — a merge takes seconds.
+ */
+function ComposePanel({
+  job, onRecompose, onDecide,
+}: {
+  job: Job
+  onRecompose: (job: Job, patch: { shift_x: number; shift_z: number; overlay_rot: number }) => void
+  onDecide: (id: string, status: 'accepted' | 'failed') => void
+}) {
+  const [dx, setDx] = useState(String(job.shift_x ?? 0))
+  const [dz, setDz] = useState(String(job.shift_z ?? 0))
+  const [rot, setRot] = useState(String(job.overlay_rot ?? 0))
+
+  const num = (s: string) => (s.trim() === '' || s === '-' ? 0 : Number(s))
+  const dirty =
+    num(dx) !== (job.shift_x ?? 0) || num(dz) !== (job.shift_z ?? 0) || Number(rot) !== (job.overlay_rot ?? 0)
+  const valid = Math.abs(num(dx)) <= 0.5 && Math.abs(num(dz)) <= 0.5
+  const field = 'w-20 bg-gray-950 border border-gray-700 rounded px-2 py-1 text-xs text-gray-100 font-mono'
+
+  return (
+    <div className="mt-3 border-t border-gray-800 pt-3 space-y-3">
+      <div className="text-[11px] text-gray-500">
+        {job.base_model} + {job.overlay_model}
+      </div>
+      <div className="flex items-end gap-3 flex-wrap">
+        <label className="text-[11px] text-gray-400">Shift X
+          <input value={dx} onChange={e => setDx(e.target.value)} className={`${field} block mt-0.5`} /></label>
+        <label className="text-[11px] text-gray-400">Shift Z
+          <input value={dz} onChange={e => setDz(e.target.value)} className={`${field} block mt-0.5`} /></label>
+        <label className="text-[11px] text-gray-400">Rotation
+          <select value={rot} onChange={e => setRot(e.target.value)} className={`${field} block mt-0.5`}>
+            {[0, 1, 2, 3, 4, 5].map(r => <option key={r} value={r}>{r}×60°</option>)}
+          </select></label>
+        <button
+          disabled={!dirty || !valid}
+          onClick={() => onRecompose(job, { shift_x: num(dx), shift_z: num(dz), overlay_rot: Number(rot) })}
+          className="px-3 py-1.5 bg-blue-800 text-blue-100 rounded-lg text-xs hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Re-compose
+        </button>
+      </div>
+      <p className="text-[11px] text-gray-600">
+        +X moves the overlay toward the lower-right, +Z toward the lower-left.
+        {!valid && <span className="text-red-400"> Shift must be within ±0.5.</span>}
+      </p>
       <div className="flex gap-2">
         <button onClick={() => onDecide(job.id, 'accepted')}
           className="px-3 py-1.5 bg-green-800 text-green-100 rounded-lg text-xs hover:bg-green-700">

@@ -28,9 +28,46 @@ export async function GET() {
   return NextResponse.json(data)
 }
 
+const MODEL_RE = /^[A-Za-z0-9][A-Za-z0-9 _.-]{0,60}\.glb$/
+
 export async function POST(req: NextRequest) {
   if (!await isAdmin()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const body = await req.json()
+
+  // ── compose: pair two models already in public/models ──────────────────
+  if (body.kind === 'compose') {
+    const outputName = String(body.output_name ?? '')
+    if (!NAME_RE.test(outputName)) {
+      return NextResponse.json({ error: 'output_name must be a simple .glb filename' }, { status: 400 })
+    }
+    for (const k of ['base_model', 'overlay_model'] as const) {
+      if (!MODEL_RE.test(String(body[k] ?? ''))) {
+        return NextResponse.json({ error: `${k} must be a plain .glb name` }, { status: 400 })
+      }
+    }
+    const inRange = (v: unknown, lo: number, hi: number) => {
+      const n = Number(v ?? 0)
+      return Number.isFinite(n) && n >= lo && n <= hi ? n : null
+    }
+    const dx = inRange(body.shift_x, -0.5, 0.5)
+    const dz = inRange(body.shift_z, -0.5, 0.5)
+    const rot = inRange(body.overlay_rot, 0, 5)
+    if (dx === null || dz === null || rot === null) {
+      return NextResponse.json({ error: 'shift ±0.5, rotation 0–5' }, { status: 400 })
+    }
+
+    const db = adminClient()
+    const { data, error } = await db.from('tile_jobs').insert({
+      kind: 'compose',
+      output_name: outputName,
+      base_model: body.base_model,
+      overlay_model: body.overlay_model,
+      shift_x: dx, shift_z: dz, overlay_rot: Math.round(rot),
+      source_path: null, surface: null,
+    }).select().single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json(data)
+  }
 
   const sourcePath = String(body.source_path ?? '')
   const outputName = String(body.output_name ?? '')
@@ -81,8 +118,8 @@ export async function PATCH(req: NextRequest) {
 
   // The admin may accept, discard, or ask for another adjust pass. Every other
   // transition belongs to the worker.
-  if (!['accepted', 'failed', 'adjust'].includes(status)) {
-    return NextResponse.json({ error: 'Only accepted/failed/adjust allowed here' }, { status: 400 })
+  if (!['accepted', 'failed', 'adjust', 'queued'].includes(status)) {
+    return NextResponse.json({ error: 'Only accepted/failed/adjust/queued allowed here' }, { status: 400 })
   }
 
   const patch: Record<string, unknown> = { status }
@@ -108,6 +145,21 @@ export async function PATCH(req: NextRequest) {
     if (body.base_side_color !== undefined) {
       patch.base_side_color = HEX_RE.test(body.base_side_color ?? '') ? body.base_side_color : null
     }
+  }
+
+  // Re-compose: move the overlay and run the (cheap) compose again.
+  if (status === 'queued') {
+    const inRange = (v: unknown, lo: number, hi: number) => {
+      const n = Number(v ?? 0)
+      return Number.isFinite(n) && n >= lo && n <= hi ? n : null
+    }
+    const dx = inRange(body.shift_x, -0.5, 0.5)
+    const dz = inRange(body.shift_z, -0.5, 0.5)
+    const rot = inRange(body.overlay_rot, 0, 5)
+    if (dx === null || dz === null || rot === null) {
+      return NextResponse.json({ error: 'shift ±0.5, rotation 0–5' }, { status: 400 })
+    }
+    patch.shift_x = dx; patch.shift_z = dz; patch.overlay_rot = Math.round(rot)
   }
 
   const db = adminClient()
