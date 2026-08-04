@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-04T13:10:24.657Z",
+  "generatedAt": "2026-08-04T15:57:12.984Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
@@ -322,6 +322,13 @@
       "thumb": "/models/path-straight.png",
       "bytes": 4752,
       "hash": "646bf5f9"
+    },
+    {
+      "file": "pegasus.glb",
+      "label": "pegasus",
+      "thumb": "/models/pegasus.png",
+      "bytes": 7230300,
+      "hash": "4c266ea7"
     },
     {
       "file": "raindrop-castle.glb",
