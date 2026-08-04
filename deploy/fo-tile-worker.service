@@ -1,0 +1,30 @@
+[Unit]
+Description=FO Dream Stories — tile normalization worker
+Documentation=https://github.com/kobe-thys/fo-dream-stories
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/fo-dream-stories
+
+# Supplies SUPABASE_SERVICE_ROLE. systemd exports these to the process, which is
+# what `set -a` does when running by hand.
+EnvironmentFile=/root/.secrets/tokens.env
+Environment=HOME=/root
+Environment=NODE_OPTIONS=--max-old-space-size=8192
+
+ExecStart=/usr/bin/node scripts/tiles/worker.mjs
+
+# Normalizing a heavy tile can run for tens of minutes; never kill mid-job.
+TimeoutStopSec=300
+Restart=always
+RestartSec=10
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fo-tile-worker
+
+[Install]
+WantedBy=multi-user.target

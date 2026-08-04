@@ -6,9 +6,25 @@ Tile normalization is enqueued from `/admin/normalizer` and executed by a worker
 Kobe's box — Vercel cannot do it (minutes of CPU, ~8 GB RAM, and `public/` is not
 writable in production).
 
+**The worker runs as a systemd service** — installed, enabled, and restarted on boot:
+
 ```bash
+systemctl status fo-tile-worker      # is it up?
+journalctl -u fo-tile-worker -f      # watch it work
+systemctl restart fo-tile-worker     # after editing worker.mjs
+```
+
+Unit file is committed at `deploy/fo-tile-worker.service` (installed to
+`/etc/systemd/system/`). It reads `/root/.secrets/tokens.env` via `EnvironmentFile`,
+so a rotated key needs a `systemctl restart`.
+
+To run it by hand instead (e.g. to debug), `set -a` is required — it exports the
+sourced variables so the node process inherits them:
+
+```bash
+systemctl stop fo-tile-worker
 set -a && . /root/.secrets/tokens.env && set +a
-node scripts/tiles/worker.mjs        # leave running while using the tab
+node scripts/tiles/worker.mjs
 ```
 
 Flow: `queued → running → preview_ready →` (admin accepts) `→ accepted → installed`.
