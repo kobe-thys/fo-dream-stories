@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-03T17:12:11.185Z",
+  "generatedAt": "2026-08-04T11:13:14.260Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
@@ -485,7 +485,7 @@
       "file": "upside-down waterfall.glb",
       "label": "upside down waterfall",
       "thumb": "/models/upside-down%20waterfall.png",
-      "bytes": 539104
+      "bytes": 539100
     },
     {
       "file": "water-island.glb",
