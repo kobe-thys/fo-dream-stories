@@ -152,7 +152,7 @@ export default function NormalizerPage() {
   }[s] ?? 'bg-gray-700 text-gray-200')
 
   return (
-    <div className="max-w-5xl space-y-8">
+    <div className="max-w-6xl space-y-8">
       <div>
         <h1 className="text-xl font-semibold text-gray-100">Tile normalizer</h1>
         <p className="text-sm text-gray-400 mt-1">
@@ -274,8 +274,8 @@ export default function NormalizerPage() {
                 convention is a plain <img>, see CLAUDE.md. */}
             {j.preview_url
               // eslint-disable-next-line @next/next/no-img-element
-              ? <img src={j.preview_url} alt="" className="w-32 h-32 object-contain bg-gray-950 rounded-lg border border-gray-800" />
-              : <div className="w-32 h-32 grid place-content-center bg-gray-950 rounded-lg border border-gray-800 text-[11px] text-gray-600">no preview</div>}
+              ? <img src={j.preview_url} alt="" className="w-80 h-64 object-contain bg-gray-950 rounded-lg border border-gray-800 shrink-0" />
+              : <div className="w-80 h-64 grid place-content-center bg-gray-950 rounded-lg border border-gray-800 text-[11px] text-gray-600 shrink-0">no preview</div>}
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">

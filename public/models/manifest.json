@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-04T15:57:12.984Z",
+  "generatedAt": "2026-08-04T16:06:20.768Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
@@ -189,6 +189,160 @@
       "thumb": "/models/grass-hill.png",
       "bytes": 34204,
       "hash": "605a6efa"
+    },
+    {
+      "file": "grass-house.glb",
+      "label": "grass house",
+      "thumb": "/models/grass-house.png",
+      "bytes": 19704,
+      "hash": "df17d2f8"
+    },
+    {
+      "file": "grass-mansion.glb",
+      "label": "grass mansion",
+      "thumb": "/models/grass-mansion.png",
+      "bytes": 22612,
+      "hash": "f0a6cdc4"
+    },
+    {
+      "file": "grass-mill.glb",
+      "label": "grass mill",
+      "thumb": "/models/grass-mill.png",
+      "bytes": 29464,
+      "hash": "182c16a7"
+    },
+    {
+      "file": "grass-path-corner-sharp.glb",
+      "label": "grass path corner sharp",
+      "thumb": "/models/grass-path-corner-sharp.png",
+      "bytes": 17448,
+      "hash": "a4707f6b"
+    },
+    {
+      "file": "grass-path-corner.glb",
+      "label": "grass path corner",
+      "thumb": "/models/grass-path-corner.png",
+      "bytes": 17264,
+      "hash": "05fe0e07"
+    },
+    {
+      "file": "grass-path-crossing.glb",
+      "label": "grass path crossing",
+      "thumb": "/models/grass-path-crossing.png",
+      "bytes": 20300,
+      "hash": "e8edfdcf"
+    },
+    {
+      "file": "grass-path-end.glb",
+      "label": "grass path end",
+      "thumb": "/models/grass-path-end.png",
+      "bytes": 16248,
+      "hash": "594eba15"
+    },
+    {
+      "file": "grass-path-intersectionA.glb",
+      "label": "grass path intersectionA",
+      "thumb": "/models/grass-path-intersectionA.png",
+      "bytes": 17956,
+      "hash": "cc18bb3b"
+    },
+    {
+      "file": "grass-path-intersectionB.glb",
+      "label": "grass path intersectionB",
+      "thumb": "/models/grass-path-intersectionB.png",
+      "bytes": 17908,
+      "hash": "6d4b3031"
+    },
+    {
+      "file": "grass-path-intersectionC.glb",
+      "label": "grass path intersectionC",
+      "thumb": "/models/grass-path-intersectionC.png",
+      "bytes": 17908,
+      "hash": "d7dde26d"
+    },
+    {
+      "file": "grass-path-intersectionD.glb",
+      "label": "grass path intersectionD",
+      "thumb": "/models/grass-path-intersectionD.png",
+      "bytes": 18752,
+      "hash": "41410dbf"
+    },
+    {
+      "file": "grass-path-intersectionE.glb",
+      "label": "grass path intersectionE",
+      "thumb": "/models/grass-path-intersectionE.png",
+      "bytes": 18752,
+      "hash": "71ec5a6b"
+    },
+    {
+      "file": "grass-path-intersectionF.glb",
+      "label": "grass path intersectionF",
+      "thumb": "/models/grass-path-intersectionF.png",
+      "bytes": 18336,
+      "hash": "0454c260"
+    },
+    {
+      "file": "grass-path-intersectionG.glb",
+      "label": "grass path intersectionG",
+      "thumb": "/models/grass-path-intersectionG.png",
+      "bytes": 19632,
+      "hash": "b6610066"
+    },
+    {
+      "file": "grass-path-intersectionH.glb",
+      "label": "grass path intersectionH",
+      "thumb": "/models/grass-path-intersectionH.png",
+      "bytes": 18616,
+      "hash": "36a01681"
+    },
+    {
+      "file": "grass-path-square-end.glb",
+      "label": "grass path square end",
+      "thumb": "/models/grass-path-square-end.png",
+      "bytes": 17100,
+      "hash": "178a4690"
+    },
+    {
+      "file": "grass-path-square.glb",
+      "label": "grass path square",
+      "thumb": "/models/grass-path-square.png",
+      "bytes": 17928,
+      "hash": "83d5c005"
+    },
+    {
+      "file": "grass-path-start.glb",
+      "label": "grass path start",
+      "thumb": "/models/grass-path-start.png",
+      "bytes": 16864,
+      "hash": "f185db78"
+    },
+    {
+      "file": "grass-path-straight.glb",
+      "label": "grass path straight",
+      "thumb": "/models/grass-path-straight.png",
+      "bytes": 16916,
+      "hash": "add1381a"
+    },
+    {
+      "file": "grass-tower.glb",
+      "label": "grass tower",
+      "thumb": "/models/grass-tower.png",
+      "bytes": 28380,
+      "hash": "4591358a"
+    },
+    {
+      "file": "grass-tree.glb",
+      "label": "grass tree",
+      "thumb": "/models/grass-tree.png",
+      "bytes": 18280,
+      "hash": "478c0e23"
+    },
+    {
+      "file": "grass-wall-tower.glb",
+      "label": "grass wall tower",
+      "thumb": "/models/grass-wall-tower.png",
+      "bytes": 24748,
+      "hash": "85a2062d"
     },
     {
       "file": "grass.glb",
@@ -588,6 +742,20 @@
       "thumb": "/models/water-rocks.png",
       "bytes": 17256,
       "hash": "6b8d11ea"
+    },
+    {
+      "file": "water-ship-large.glb",
+      "label": "water ship large",
+      "thumb": "/models/water-ship-large.png",
+      "bytes": 24956,
+      "hash": "61885f9e"
+    },
+    {
+      "file": "water-ship.glb",
+      "label": "water ship",
+      "thumb": "/models/water-ship.png",
+      "bytes": 21904,
+      "hash": "31416325"
     },
     {
       "file": "water.glb",
