@@ -14,6 +14,7 @@ import { isAdmin, adminClient } from '@/lib/admin'
  */
 
 const NAME_RE = /^[a-z0-9][a-z0-9 _-]{0,60}\.glb$/i
+const HEX_RE = /^#[0-9a-fA-F]{6}$/
 
 export async function GET() {
   if (!await isAdmin()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -65,6 +66,8 @@ export async function POST(req: NextRequest) {
     match_water: !!body.match_water,
     palette_lock: body.palette_lock !== false,
     rebuild_base: body.rebuild_base !== false,
+    base_top_color: HEX_RE.test(body.base_top_color ?? '') ? body.base_top_color : null,
+    base_side_color: HEX_RE.test(body.base_side_color ?? '') ? body.base_side_color : null,
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -73,14 +76,42 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   if (!await isAdmin()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  const { id, status } = await req.json()
-  // The admin may only accept a finished preview or discard a job — every other
+  const body = await req.json()
+  const { id, status } = body
+
+  // The admin may accept, discard, or ask for another adjust pass. Every other
   // transition belongs to the worker.
-  if (!['accepted', 'failed'].includes(status)) {
-    return NextResponse.json({ error: 'Only accepted/failed allowed here' }, { status: 400 })
+  if (!['accepted', 'failed', 'adjust'].includes(status)) {
+    return NextResponse.json({ error: 'Only accepted/failed/adjust allowed here' }, { status: 400 })
   }
+
+  const patch: Record<string, unknown> = { status }
+
+  if (status === 'adjust') {
+    const rng = (v: unknown, lo: number, hi: number, dflt: number) => {
+      if (v === undefined || v === null || v === '') return dflt
+      const n = Number(v)
+      return Number.isFinite(n) && n >= lo && n <= hi ? n : null
+    }
+    const sx = rng(body.shift_x, -0.5, 0.5, 0)
+    const sz = rng(body.shift_z, -0.5, 0.5, 0)
+    const sc = rng(body.top_scale, 0.5, 2, 1)
+    if (sx === null || sz === null || sc === null) {
+      return NextResponse.json({ error: 'shift ±0.5, scale 0.5–2' }, { status: 400 })
+    }
+    patch.shift_x = sx
+    patch.shift_z = sz
+    patch.top_scale = sc
+    if (body.base_top_color !== undefined) {
+      patch.base_top_color = HEX_RE.test(body.base_top_color ?? '') ? body.base_top_color : null
+    }
+    if (body.base_side_color !== undefined) {
+      patch.base_side_color = HEX_RE.test(body.base_side_color ?? '') ? body.base_side_color : null
+    }
+  }
+
   const db = adminClient()
-  const { error } = await db.from('tile_jobs').update({ status }).eq('id', id).eq('status', 'preview_ready')
+  const { error } = await db.from('tile_jobs').update(patch).eq('id', id).eq('status', 'preview_ready')
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

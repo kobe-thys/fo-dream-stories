@@ -101,7 +101,10 @@ async function normalize(job) {
     // Generated tiles carry the generator's studio lights; strip before preview so
     // what is reviewed is what ships.
     await run('node', [path.join(REPO, 'scripts/tiles/strip-lights.mjs'), out], { cwd: REPO })
-    await run('node', [path.join(REPO, 'scripts/tiles/fix-materials.mjs'), out], { cwd: REPO })
+    const matArgs = [path.join(REPO, 'scripts/tiles/fix-materials.mjs'), out]
+    if (/^#[0-9a-fA-F]{6}$/.test(job.base_top_color || '')) matArgs.push(`--base-top=${job.base_top_color}`)
+    if (/^#[0-9a-fA-F]{6}$/.test(job.base_side_color || '')) matArgs.push(`--base-side=${job.base_side_color}`)
+    await run('node', matArgs, { cwd: REPO })
 
     const png = out.replace(/\.glb$/i, '.png')
     await run('python3', [path.join(REPO, 'scripts/tiles/render_glb.py'), out, png],
@@ -145,6 +148,55 @@ async function normalize(job) {
   }
 }
 
+/**
+ * Re-apply base colours and an artwork nudge to the ALREADY-BUILT tile, then
+ * re-render. Seconds rather than the minutes a re-normalize would cost, which is
+ * the whole point: placement is judged by eye, so it has to be cheap to retry.
+ */
+async function adjust(job) {
+  log(`adjusting ${job.output_name}`)
+  const cached = path.join(os.tmpdir(), `tilejob-${job.id}.glb`)
+  const pristine = path.join(os.tmpdir(), `tilejob-${job.id}.orig.glb`)
+  try {
+    if (!fs.existsSync(cached)) throw new Error('built tile missing — re-run the job')
+    // Keep an untouched copy: adjustments are absolute, not cumulative, so each
+    // preview must start from the freshly built tile.
+    if (!fs.existsSync(pristine)) fs.copyFileSync(cached, pristine)
+    fs.copyFileSync(pristine, cached)
+
+    const matArgs = [path.join(REPO, 'scripts/tiles/fix-materials.mjs'), cached]
+    if (/^#[0-9a-fA-F]{6}$/.test(job.base_top_color || '')) matArgs.push(`--base-top=${job.base_top_color}`)
+    if (/^#[0-9a-fA-F]{6}$/.test(job.base_side_color || '')) matArgs.push(`--base-side=${job.base_side_color}`)
+    await run('node', matArgs, { cwd: REPO })
+
+    await run('node', [
+      path.join(REPO, 'scripts/tiles/adjust-tile.mjs'), cached,
+      `--shift-x=${Number(job.shift_x) || 0}`,
+      `--shift-z=${Number(job.shift_z) || 0}`,
+      `--scale=${Number(job.top_scale) || 1}`,
+    ], { cwd: REPO })
+
+    const png = path.join(os.tmpdir(), `tilejob-${job.id}.png`)
+    await run('python3', [path.join(REPO, 'scripts/tiles/render_glb.py'), cached, png],
+              { cwd: REPO, timeout: 15 * 60_000 })
+
+    const up = await db.storage.from('tile-previews')
+      .upload(`${job.id}.png`, fs.readFileSync(png), { contentType: 'image/png', upsert: true })
+    if (up.error) throw new Error(`preview upload failed: ${up.error.message}`)
+    const { data: pub } = db.storage.from('tile-previews').getPublicUrl(`${job.id}.png`)
+
+    await setStatus(job.id, {
+      status: 'preview_ready',
+      preview_url: `${pub.publicUrl}?t=${Date.now()}`,
+      bytes: fs.statSync(cached).size,
+    })
+    log('  adjusted preview ready')
+  } catch (e) {
+    log(`  adjust FAILED: ${e.message}`)
+    await setStatus(job.id, { status: 'failed', log: String(e.message).slice(0, 4000) })
+  }
+}
+
 /** Install an accepted tile into the repo and push, which triggers a Vercel deploy. */
 async function install(job) {
   log(`installing ${job.output_name}`)
@@ -171,12 +223,13 @@ async function install(job) {
 
 async function tick() {
   const { data, error } = await db.from('tile_jobs')
-    .select('*').in('status', ['queued', 'accepted'])
+    .select('*').in('status', ['queued', 'adjust', 'accepted'])
     .order('created_at', { ascending: true }).limit(1)
   if (error) { log('poll error:', error.message); return }
   const job = data?.[0]
   if (!job) return
   if (job.status === 'queued') await normalize(job)
+  else if (job.status === 'adjust') await adjust(job)
   else await install(job)
 }
 

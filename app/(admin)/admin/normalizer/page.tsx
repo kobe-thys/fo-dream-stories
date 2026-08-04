@@ -23,7 +23,21 @@ interface Job {
   measured_plate_top: number | null
   triangles: number | null
   bytes: number | null
+  base_top_color: string | null
+  base_side_color: string | null
+  shift_x: number
+  shift_z: number
+  top_scale: number
 }
+
+// Kenney surface colours, measured off the kit — the usual choices for a base top.
+const BASE_COLOURS = [
+  { label: 'Grass',  hex: '#48c1a3' },
+  { label: 'Water',  hex: '#8fdbff' },
+  { label: 'Sand',   hex: '#e6cfa1' },
+  { label: 'Stone',  hex: '#9fa3b5' },
+  { label: 'Dirt',   hex: '#be9b8b' },
+]
 
 // Measured off the Kenney kit — see the tile geometry contract in CLAUDE.md.
 const SURFACES = [
@@ -108,6 +122,22 @@ export default function NormalizerPage() {
     await fetch('/api/admin/tile-jobs', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, status }),
+    })
+    load()
+  }
+
+  // Re-preview from the already-built tile — seconds, not a re-normalize.
+  async function requestAdjust(job: Job, patch: Partial<Job>) {
+    await fetch('/api/admin/tile-jobs', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: job.id, status: 'adjust',
+        shift_x: patch.shift_x ?? job.shift_x ?? 0,
+        shift_z: patch.shift_z ?? job.shift_z ?? 0,
+        top_scale: patch.top_scale ?? job.top_scale ?? 1,
+        base_top_color: patch.base_top_color !== undefined ? patch.base_top_color : job.base_top_color,
+        base_side_color: patch.base_side_color !== undefined ? patch.base_side_color : job.base_side_color,
+      }),
     })
     load()
   }
@@ -267,6 +297,52 @@ export default function NormalizerPage() {
                 </pre>
               )}
               {j.status === 'preview_ready' && (
+                <div className="mt-3 border-t border-gray-800 pt-3 space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] text-gray-400 w-20">Base top</span>
+                    {BASE_COLOURS.map(c => (
+                      <button key={c.hex} title={c.hex}
+                        onClick={() => requestAdjust(j, { base_top_color: c.hex })}
+                        className={`w-6 h-6 rounded border-2 ${j.base_top_color === c.hex ? 'border-white' : 'border-gray-700'}`}
+                        style={{ background: c.hex }} />
+                    ))}
+                    <button onClick={() => requestAdjust(j, { base_top_color: null })}
+                      className="text-[11px] px-2 py-0.5 rounded bg-gray-800 border border-gray-700 text-gray-400 hover:bg-gray-700">
+                      sampled
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-3 flex-wrap text-[11px] text-gray-400">
+                    <span className="w-20">Nudge art</span>
+                    {([['shift_x', 'X'], ['shift_z', 'Z']] as const).map(([k, lbl]) => (
+                      <span key={k} className="flex items-center gap-1">
+                        {lbl}
+                        <button onClick={() => requestAdjust(j, { [k]: Number(((j[k] ?? 0) - 0.02).toFixed(3)) } as Partial<Job>)}
+                          className="px-1.5 rounded bg-gray-800 border border-gray-700 hover:bg-gray-700">−</button>
+                        <span className="font-mono w-12 text-center text-gray-300">{(j[k] ?? 0).toFixed(2)}</span>
+                        <button onClick={() => requestAdjust(j, { [k]: Number(((j[k] ?? 0) + 0.02).toFixed(3)) } as Partial<Job>)}
+                          className="px-1.5 rounded bg-gray-800 border border-gray-700 hover:bg-gray-700">+</button>
+                      </span>
+                    ))}
+                    <span className="flex items-center gap-1">
+                      size
+                      <button onClick={() => requestAdjust(j, { top_scale: Number(Math.max(0.5, (j.top_scale ?? 1) - 0.05).toFixed(3)) })}
+                        className="px-1.5 rounded bg-gray-800 border border-gray-700 hover:bg-gray-700">−</button>
+                      <span className="font-mono w-14 text-center text-gray-300">
+                        {(((j.top_scale ?? 1) - 1) * 100).toFixed(0)}%
+                      </span>
+                      <button onClick={() => requestAdjust(j, { top_scale: Number(Math.min(2, (j.top_scale ?? 1) + 0.05).toFixed(3)) })}
+                        className="px-1.5 rounded bg-gray-800 border border-gray-700 hover:bg-gray-700">+</button>
+                    </span>
+                    {(j.shift_x || j.shift_z || (j.top_scale ?? 1) !== 1 || j.base_top_color) && (
+                      <button onClick={() => requestAdjust(j, { shift_x: 0, shift_z: 0, top_scale: 1, base_top_color: null })}
+                        className="px-2 py-0.5 rounded bg-gray-800 border border-gray-700 hover:bg-gray-700">reset</button>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-gray-600">
+                    The hex base never moves — only the artwork on top of it.
+                  </p>
+
                 <div className="mt-2 flex gap-2">
                   <button onClick={() => decide(j.id, 'accepted')}
                     className="px-3 py-1.5 bg-green-800 text-green-100 rounded-lg text-xs hover:bg-green-700">
@@ -276,6 +352,7 @@ export default function NormalizerPage() {
                     className="px-3 py-1.5 bg-gray-800 text-gray-300 border border-gray-700 rounded-lg text-xs hover:bg-gray-700">
                     Discard
                   </button>
+                </div>
                 </div>
               )}
               {j.status === 'installed' && (
