@@ -271,6 +271,9 @@ export default function NormalizerPage() {
         {jobs.map(j => (
           <div key={j.id} className="border border-gray-800 rounded-xl p-4 flex gap-4 bg-gray-900/30">
             {j.preview_url
+              // eslint-disable-next-line @next/next/no-img-element -- next/image
+              // does not work with Supabase Storage URLs; project convention is a
+              // plain <img> (see CLAUDE.md).
               ? <img src={j.preview_url} alt="" className="w-32 h-32 object-contain bg-gray-950 rounded-lg border border-gray-800" />
               : <div className="w-32 h-32 grid place-content-center bg-gray-950 rounded-lg border border-gray-800 text-[11px] text-gray-600">no preview</div>}
 
@@ -297,63 +300,13 @@ export default function NormalizerPage() {
                 </pre>
               )}
               {j.status === 'preview_ready' && (
-                <div className="mt-3 border-t border-gray-800 pt-3 space-y-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[11px] text-gray-400 w-20">Base top</span>
-                    {BASE_COLOURS.map(c => (
-                      <button key={c.hex} title={c.hex}
-                        onClick={() => requestAdjust(j, { base_top_color: c.hex })}
-                        className={`w-6 h-6 rounded border-2 ${j.base_top_color === c.hex ? 'border-white' : 'border-gray-700'}`}
-                        style={{ background: c.hex }} />
-                    ))}
-                    <button onClick={() => requestAdjust(j, { base_top_color: null })}
-                      className="text-[11px] px-2 py-0.5 rounded bg-gray-800 border border-gray-700 text-gray-400 hover:bg-gray-700">
-                      sampled
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-3 flex-wrap text-[11px] text-gray-400">
-                    <span className="w-20">Nudge art</span>
-                    {([['shift_x', 'X'], ['shift_z', 'Z']] as const).map(([k, lbl]) => (
-                      <span key={k} className="flex items-center gap-1">
-                        {lbl}
-                        <button onClick={() => requestAdjust(j, { [k]: Number(((j[k] ?? 0) - 0.02).toFixed(3)) } as Partial<Job>)}
-                          className="px-1.5 rounded bg-gray-800 border border-gray-700 hover:bg-gray-700">−</button>
-                        <span className="font-mono w-12 text-center text-gray-300">{(j[k] ?? 0).toFixed(2)}</span>
-                        <button onClick={() => requestAdjust(j, { [k]: Number(((j[k] ?? 0) + 0.02).toFixed(3)) } as Partial<Job>)}
-                          className="px-1.5 rounded bg-gray-800 border border-gray-700 hover:bg-gray-700">+</button>
-                      </span>
-                    ))}
-                    <span className="flex items-center gap-1">
-                      size
-                      <button onClick={() => requestAdjust(j, { top_scale: Number(Math.max(0.5, (j.top_scale ?? 1) - 0.05).toFixed(3)) })}
-                        className="px-1.5 rounded bg-gray-800 border border-gray-700 hover:bg-gray-700">−</button>
-                      <span className="font-mono w-14 text-center text-gray-300">
-                        {(((j.top_scale ?? 1) - 1) * 100).toFixed(0)}%
-                      </span>
-                      <button onClick={() => requestAdjust(j, { top_scale: Number(Math.min(2, (j.top_scale ?? 1) + 0.05).toFixed(3)) })}
-                        className="px-1.5 rounded bg-gray-800 border border-gray-700 hover:bg-gray-700">+</button>
-                    </span>
-                    {(j.shift_x || j.shift_z || (j.top_scale ?? 1) !== 1 || j.base_top_color) && (
-                      <button onClick={() => requestAdjust(j, { shift_x: 0, shift_z: 0, top_scale: 1, base_top_color: null })}
-                        className="px-2 py-0.5 rounded bg-gray-800 border border-gray-700 hover:bg-gray-700">reset</button>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-gray-600">
-                    The hex base never moves — only the artwork on top of it.
-                  </p>
-
-                <div className="mt-2 flex gap-2">
-                  <button onClick={() => decide(j.id, 'accepted')}
-                    className="px-3 py-1.5 bg-green-800 text-green-100 rounded-lg text-xs hover:bg-green-700">
-                    Install &amp; deploy
-                  </button>
-                  <button onClick={() => decide(j.id, 'failed')}
-                    className="px-3 py-1.5 bg-gray-800 text-gray-300 border border-gray-700 rounded-lg text-xs hover:bg-gray-700">
-                    Discard
-                  </button>
-                </div>
-                </div>
+                <AdjustPanel
+                  // Remount when the APPLIED values change, so the fields resync
+                  // after a re-preview. Unchanged values keep the key stable, so
+                  // the 4s poll never clobbers what is being typed.
+                  key={`${j.id}:${j.shift_x}:${j.shift_z}:${j.top_scale}:${j.base_top_color}`}
+                  job={j} onApply={requestAdjust} onDecide={decide}
+                />
               )}
               {j.status === 'installed' && (
                 <p className="mt-2 text-[11px] text-green-400">
@@ -363,6 +316,120 @@ export default function NormalizerPage() {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Batched adjust controls.
+ *
+ * Every change used to fire a job immediately, and each re-preview costs a CPU
+ * render — ~50s on a heavy tile. So changes are held locally and sent once, on
+ * Apply.
+ *
+ * Axis directions are stated because they are not guessable: the preview camera is
+ * fixed at (2.6, 2.2, 3.4) looking at the origin, which puts +X toward the
+ * lower-right of the image and +Z toward the lower-left.
+ */
+function AdjustPanel({
+  job, onApply, onDecide,
+}: {
+  job: Job
+  onApply: (job: Job, patch: Partial<Job>) => void
+  onDecide: (id: string, status: 'accepted' | 'failed') => void
+}) {
+  const [topColor, setTopColor] = useState<string | null>(job.base_top_color)
+  const [shiftX, setShiftX] = useState(String(job.shift_x ?? 0))
+  const [shiftZ, setShiftZ] = useState(String(job.shift_z ?? 0))
+  const [pct, setPct] = useState(String(Math.round(((job.top_scale ?? 1) - 1) * 100)))
+
+  const dirty =
+    topColor !== job.base_top_color ||
+    Number(shiftX) !== (job.shift_x ?? 0) ||
+    Number(shiftZ) !== (job.shift_z ?? 0) ||
+    Number(pct) !== Math.round(((job.top_scale ?? 1) - 1) * 100)
+
+  const num = (s: string) => (s.trim() === '' || s === '-' ? 0 : Number(s))
+  const valid =
+    Number.isFinite(num(shiftX)) && Math.abs(num(shiftX)) <= 0.5 &&
+    Number.isFinite(num(shiftZ)) && Math.abs(num(shiftZ)) <= 0.5 &&
+    Number.isFinite(num(pct)) && num(pct) >= -50 && num(pct) <= 100
+
+  const field = 'w-20 bg-gray-950 border border-gray-700 rounded px-2 py-1 text-xs text-gray-100 font-mono'
+
+  return (
+    <div className="mt-3 border-t border-gray-800 pt-3 space-y-3">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[11px] text-gray-400 w-24">Base top colour</span>
+        {BASE_COLOURS.map(c => (
+          <button key={c.hex} title={`${c.label} ${c.hex}`} onClick={() => setTopColor(c.hex)}
+            className={`w-6 h-6 rounded border-2 ${topColor === c.hex ? 'border-white' : 'border-gray-700'}`}
+            style={{ background: c.hex }} />
+        ))}
+        <button onClick={() => setTopColor(null)}
+          className={`text-[11px] px-2 py-0.5 rounded border ${topColor === null
+            ? 'bg-gray-700 border-white text-gray-100'
+            : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700'}`}>
+          sampled
+        </button>
+      </div>
+
+      <div className="flex items-end gap-3 flex-wrap">
+        <label className="text-[11px] text-gray-400">
+          Shift X
+          <input value={shiftX} onChange={e => setShiftX(e.target.value)} className={`${field} block mt-0.5`} />
+        </label>
+        <label className="text-[11px] text-gray-400">
+          Shift Z
+          <input value={shiftZ} onChange={e => setShiftZ(e.target.value)} className={`${field} block mt-0.5`} />
+        </label>
+        <label className="text-[11px] text-gray-400">
+          Size %
+          <input value={pct} onChange={e => setPct(e.target.value)} className={`${field} block mt-0.5`} />
+        </label>
+        <button
+          disabled={!dirty || !valid}
+          onClick={() => onApply(job, {
+            base_top_color: topColor,
+            shift_x: num(shiftX),
+            shift_z: num(shiftZ),
+            top_scale: 1 + num(pct) / 100,
+          })}
+          className="px-3 py-1.5 bg-blue-800 text-blue-100 rounded-lg text-xs hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Apply &amp; re-preview
+        </button>
+        {dirty && (
+          <button
+            onClick={() => {
+              setTopColor(job.base_top_color)
+              setShiftX(String(job.shift_x ?? 0)); setShiftZ(String(job.shift_z ?? 0))
+              setPct(String(Math.round(((job.top_scale ?? 1) - 1) * 100)))
+            }}
+            className="px-2 py-1.5 text-[11px] text-gray-400 hover:text-gray-200">
+            revert
+          </button>
+        )}
+      </div>
+
+      <p className="text-[11px] text-gray-600 leading-relaxed">
+        In the preview, <b className="text-gray-400">+X</b> moves the artwork toward the
+        lower-right, <b className="text-gray-400">+Z</b> toward the lower-left. Units are
+        tile widths, so 0.05 ≈ 5% of a hex. Shift ±0.5, size −50% to +100%.
+        The hex base never moves — only the artwork on top of it.
+        {!valid && <span className="text-red-400"> Value out of range.</span>}
+      </p>
+
+      <div className="flex gap-2">
+        <button onClick={() => onDecide(job.id, 'accepted')}
+          className="px-3 py-1.5 bg-green-800 text-green-100 rounded-lg text-xs hover:bg-green-700">
+          Install &amp; deploy
+        </button>
+        <button onClick={() => onDecide(job.id, 'failed')}
+          className="px-3 py-1.5 bg-gray-800 text-gray-300 border border-gray-700 rounded-lg text-xs hover:bg-gray-700">
+          Discard
+        </button>
       </div>
     </div>
   )
