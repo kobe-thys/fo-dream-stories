@@ -10,6 +10,33 @@ const AdminHexGrid = dynamic(() => import('@/components/admin/map/AdminHexGrid')
 
 interface StoryOption { id: string; title: string }
 
+/**
+ * In-memory undo. Deliberately not persisted — it is cleared by a reload, which
+ * is the accepted trade for not adding an edits table. Tile edits hit the server
+ * immediately, so undo replays the inverse call rather than rolling back a batch.
+ */
+type UndoAction =
+  | { kind: 'create'; tile: AdminTile }
+  | { kind: 'delete'; tile: AdminTile }
+  | { kind: 'move'; id: string; from: { q: number; r: number } }
+  | { kind: 'update'; id: string; before: Partial<AdminTile> }
+
+const UNDO_LIMIT = 25
+
+// Fields the side panel can change, and therefore the ones undo has to restore.
+const MUTABLE: (keyof AdminTile)[] = [
+  'type', 'story_id', 'name', 'terrain_type', 'model', 'rotation',
+  'scale_x', 'scale_y', 'scale_z',
+]
+
+function patchTile(id: string, body: Record<string, unknown>) {
+  return fetch(`/api/admin/map-tiles/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
 export default function AdminMapPage() {
   const [tiles, setTiles]           = useState<AdminTile[]>([])
   const [stories, setStories]       = useState<StoryOption[]>([])
@@ -22,6 +49,11 @@ export default function AdminMapPage() {
   const [modelFiles, setModelFiles] = useState<string[]>([])
   const [selectedModel, setSelectedModel] = useState<string>('grass.glb')
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [undoStack, setUndoStack] = useState<UndoAction[]>([])
+  const [undoing, setUndoing] = useState(false)
+
+  const pushUndo = (a: UndoAction) =>
+    setUndoStack(s => [...s, a].slice(-UNDO_LIMIT))
 
   useEffect(() => {
     Promise.all([
@@ -92,6 +124,11 @@ export default function AdminMapPage() {
         body: JSON.stringify({ position_q: q, position_r: r }),
       })
       if (!res.ok) return
+      pushUndo({
+        kind: 'move',
+        id: selectedTile.id,
+        from: { q: selectedTile.position_q, r: selectedTile.position_r },
+      })
       const updated = { ...selectedTile, position_q: q, position_r: r }
       setTiles(prev => prev.map(t => t.id === selectedTile.id ? updated : t))
       setSelectedTile(updated)
@@ -107,11 +144,20 @@ export default function AdminMapPage() {
     })
     if (!res.ok) return
     const newTile: AdminTile = await res.json()
+    pushUndo({ kind: 'create', tile: newTile })
     setTiles(prev => [...prev, newTile])
     setSelectedTile(newTile)
   }
 
   function handleTileUpdated(updated: AdminTile) {
+    const before = tiles.find(t => t.id === updated.id)
+    if (before) {
+      const changed: Partial<AdminTile> = {}
+      for (const k of MUTABLE) {
+        if (before[k] !== updated[k]) (changed as Record<string, unknown>)[k] = before[k]
+      }
+      if (Object.keys(changed).length) pushUndo({ kind: 'update', id: updated.id, before: changed })
+    }
     setTiles(prev => prev.map(t => t.id === updated.id ? updated : t))
     setSelectedTile(updated)
   }
@@ -120,9 +166,59 @@ export default function AdminMapPage() {
     if (!selectedTile) return
     const res = await fetch(`/api/admin/map-tiles/${selectedTile.id}`, { method: 'DELETE' })
     if (!res.ok) return
+    pushUndo({ kind: 'delete', tile: selectedTile })
     setTiles(prev => prev.filter(t => t.id !== selectedTile.id))
     setSelectedTile(null)
     setIsMoving(false)
+  }
+
+  async function handleUndo() {
+    const action = undoStack[undoStack.length - 1]
+    if (!action || undoing) return
+    setUndoing(true)
+    try {
+      if (action.kind === 'create') {
+        const res = await fetch(`/api/admin/map-tiles/${action.tile.id}`, { method: 'DELETE' })
+        if (!res.ok) return
+        setTiles(prev => prev.filter(t => t.id !== action.tile.id))
+        setSelectedTile(prev => prev?.id === action.tile.id ? null : prev)
+
+      } else if (action.kind === 'move') {
+        const res = await patchTile(action.id, { position_q: action.from.q, position_r: action.from.r })
+        if (!res.ok) return
+        setTiles(prev => prev.map(t => t.id === action.id
+          ? { ...t, position_q: action.from.q, position_r: action.from.r } : t))
+        setSelectedTile(prev => prev?.id === action.id
+          ? { ...prev, position_q: action.from.q, position_r: action.from.r } : prev)
+
+      } else if (action.kind === 'update') {
+        const res = await patchTile(action.id, action.before as Record<string, unknown>)
+        if (!res.ok) return
+        setTiles(prev => prev.map(t => t.id === action.id ? { ...t, ...action.before } : t))
+        setSelectedTile(prev => prev?.id === action.id ? { ...prev, ...action.before } : prev)
+
+      } else {
+        // Re-create. The row gets a NEW id, so unlock links that pointed at the
+        // deleted tile are not restored -- re-link it if it was a story tile.
+        const t = action.tile
+        const res = await fetch('/api/admin/map-tiles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ q: t.position_q, r: t.position_r, model: t.model }),
+        })
+        if (!res.ok) return
+        const created: AdminTile = await res.json()
+        const rest: Record<string, unknown> = {}
+        for (const k of MUTABLE) if (t[k] !== undefined && t[k] !== null) rest[k] = t[k]
+        if (Object.keys(rest).length) await patchTile(created.id, rest)
+        const restored = { ...created, ...rest } as AdminTile
+        setTiles(prev => [...prev, restored])
+        setSelectedTile(restored)
+      }
+      setUndoStack(s => s.slice(0, -1))
+    } finally {
+      setUndoing(false)
+    }
   }
 
   function enterLinkedMode() {
@@ -184,6 +280,14 @@ export default function AdminMapPage() {
         )}
         {!linkedMode && (
           <div className="absolute top-3 right-3 z-10 flex gap-2">
+            <button
+              onClick={handleUndo}
+              disabled={undoStack.length === 0 || undoing}
+              title={undoStack.length ? `Undo ${undoStack[undoStack.length - 1].kind} (${undoStack.length})` : 'Nothing to undo'}
+              className="px-3 py-1.5 bg-gray-800 text-gray-200 border border-gray-700 rounded-lg text-xs hover:bg-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              ↶ Undo{undoStack.length ? ` (${undoStack.length})` : ''}
+            </button>
             {unpublishedCount > 0 && (
               <button
                 onClick={handlePublishAll}

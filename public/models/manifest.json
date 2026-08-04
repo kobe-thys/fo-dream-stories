@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-04T11:45:28.902Z",
+  "generatedAt": "2026-08-04T12:18:55.467Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
@@ -137,19 +137,19 @@
       "file": "dragon-mountain-sea.glb",
       "label": "dragon mountain sea",
       "thumb": "/models/dragon-mountain-sea.png",
-      "bytes": 298824
+      "bytes": 299056
     },
     {
       "file": "dragon-mountain.glb",
       "label": "dragon mountain",
       "thumb": "/models/dragon-mountain.png",
-      "bytes": 390428
+      "bytes": 390644
     },
     {
       "file": "enid-kingdom.glb",
       "label": "enid kingdom",
       "thumb": "/models/enid-kingdom.png",
-      "bytes": 5239640
+      "bytes": 5234232
     },
     {
       "file": "grass-forest.glb",
@@ -173,13 +173,13 @@
       "file": "griffon-shell.glb",
       "label": "griffon shell",
       "thumb": "/models/griffon-shell.png",
-      "bytes": 4617888
+      "bytes": 4618324
     },
     {
       "file": "once-in-a-lifetime-portal.glb",
       "label": "once in a lifetime portal",
       "thumb": "/models/once-in-a-lifetime-portal.png",
-      "bytes": 337536
+      "bytes": 337636
     },
     {
       "file": "path-corner-sharp.glb",
@@ -281,7 +281,7 @@
       "file": "raindrop-castle.glb",
       "label": "raindrop castle",
       "thumb": "/models/raindrop-castle.png",
-      "bytes": 3625536
+      "bytes": 3587776
     },
     {
       "file": "river-corner-sharp.glb",
@@ -413,13 +413,13 @@
       "file": "sun-cave.glb",
       "label": "sun cave",
       "thumb": "/models/sun-cave.png",
-      "bytes": 340124
+      "bytes": 339612
     },
     {
       "file": "sunken-elven-ship.glb",
       "label": "sunken elven ship",
       "thumb": "/models/sunken-elven-ship.png",
-      "bytes": 369964
+      "bytes": 370400
     },
     {
       "file": "syrup-tree.glb",
@@ -431,7 +431,7 @@
       "file": "tinkle-trunk.glb",
       "label": "tinkle trunk",
       "thumb": "/models/tinkle-trunk.png",
-      "bytes": 307472
+      "bytes": 305748
     },
     {
       "file": "unit-house.glb",
