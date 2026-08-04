@@ -183,7 +183,8 @@ export default function NormalizerPage() {
               className="mt-1 w-full bg-gray-950 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-gray-100"
             />
             <span className="text-[11px] text-gray-500">
-              Where the plate ends in the source. Set it for tall models — the auto guess picks canopy.
+              Where the flat hex plate stops and the artwork begins. Leave blank first —
+              every job logs a height profile with a suggested value.
             </span>
           </label>
           <label className="block">
@@ -192,7 +193,20 @@ export default function NormalizerPage() {
               type="number" value={budget} onChange={e => setBudget(Number(e.target.value))}
               className="mt-1 w-full bg-gray-950 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-gray-100"
             />
-            <span className="text-[11px] text-gray-500">Trellis exports plateau — raise to ~60000.</span>
+            <div className="mt-1 flex gap-1">
+              {[8000, 60000, 120000].map(b => (
+                <button key={b} onClick={() => setBudget(b)}
+                  className={`px-2 py-0.5 rounded text-[11px] border ${budget === b
+                    ? 'bg-purple-900 border-purple-600 text-purple-100'
+                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700'}`}>
+                  {b.toLocaleString()}
+                </button>
+              ))}
+            </div>
+            <span className="text-[11px] text-gray-500">
+              Trellis exports plateau far above 8,000 — if a job fails on budget, the log
+              shows what it reached; set this just above it.
+            </span>
           </label>
           <div className="space-y-1.5 pt-5 text-xs text-gray-300">
             <label className="flex gap-2 items-center">
@@ -248,7 +262,7 @@ export default function NormalizerPage() {
                 {j.bytes != null && <span>{(j.bytes / 1024).toFixed(0)} KB</span>}
               </div>
               {j.log && (
-                <pre className="mt-2 text-[10px] text-gray-500 bg-gray-950 border border-gray-800 rounded p-2 overflow-x-auto whitespace-pre-wrap max-h-28">
+                <pre className="mt-2 text-[10px] text-gray-500 bg-gray-950 border border-gray-800 rounded p-2 overflow-x-auto whitespace-pre max-h-64 font-mono">
                   {j.log}
                 </pre>
               )}

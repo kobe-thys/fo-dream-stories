@@ -54,6 +54,7 @@ async function normalize(job) {
   await setStatus(job.id, { status: 'running', log: null })
   log(`normalizing ${job.output_name} (surface=${job.surface})`)
 
+  let profile = ''
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'tilejob-'))
   const src = path.join(tmp, 'source.glb')
   const out = path.join(tmp, job.output_name)
@@ -62,6 +63,18 @@ async function normalize(job) {
     const { data, error } = await db.storage.from('tile-sources').download(job.source_path)
     if (error) throw new Error(`download failed: ${error.message}`)
     fs.writeFileSync(src, Buffer.from(await data.arrayBuffer()))
+
+    // Profile the source BEFORE normalizing, and keep it whatever the outcome.
+    // Choosing --base-top otherwise means guessing at a number you cannot see, and
+    // a failed job is exactly when you most need the profile in front of you.
+    try {
+      const p = await run('node', ['--max-old-space-size=8192',
+        path.join(REPO, 'scripts/tiles/inspect-tile.mjs'), src],
+        { cwd: REPO, maxBuffer: 8 * 1024 * 1024, timeout: 10 * 60_000 })
+      profile = p.stdout
+    } catch (e) {
+      profile = `(profile unavailable: ${e.message.split('\n')[0]})`
+    }
 
     // Built from typed columns only — never a string from the row.
     const args = [
@@ -114,7 +127,7 @@ async function normalize(job) {
     await setStatus(job.id, {
       status: 'preview_ready',
       preview_url: `${pub.publicUrl}?t=${Date.now()}`,
-      log: stdout.trim().split('\n').slice(-12).join('\n'),
+      log: `${profile}\n──────────\n${stdout.trim().split('\n').slice(-12).join('\n')}`,
       measured_r: R ? Number(R) : null,
       measured_plate_top: plate ? Number(plate) : null,
       triangles: tris ? Number(tris) : null,
@@ -123,7 +136,10 @@ async function normalize(job) {
     log(`  preview ready — R=${R} plateTop=${plate} tris=${tris}`)
   } catch (e) {
     log(`  FAILED: ${e.message}`)
-    await setStatus(job.id, { status: 'failed', log: String(e.message).slice(0, 4000) })
+    await setStatus(job.id, {
+      status: 'failed',
+      log: `${profile}\n──────────\n${String(e.message)}`.slice(0, 8000),
+    })
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true })
   }
