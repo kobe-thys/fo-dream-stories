@@ -271,6 +271,22 @@ async function install(job) {
 
     await run('npm', ['run', 'models:manifest'], { cwd: REPO, timeout: 5 * 60_000 })
     await run('git', ['add', 'public/models'], { cwd: REPO })
+
+    // Re-installing a tile that came out byte-identical stages nothing, and
+    // `git commit` exits non-zero on an empty index -- which used to fail the job
+    // with a baffling error even though the tile was already live and correct.
+    let staged = true
+    try {
+      await run('git', ['diff', '--cached', '--quiet'], { cwd: REPO })
+      staged = false
+    } catch { /* non-zero means there ARE staged changes */ }
+
+    if (!staged) {
+      await setStatus(job.id, { status: 'installed', log: 'Identical to the installed tile — nothing to deploy.' })
+      log('  identical to what is already installed — nothing to push')
+      return
+    }
+
     await run('git', ['commit', '-m', `feat(tile): ${job.output_name} via admin normalizer`], { cwd: REPO })
     await run('git', ['push', 'origin', 'main'], { cwd: REPO, timeout: 10 * 60_000 })
 
