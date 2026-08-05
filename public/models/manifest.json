@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-05T13:04:09.385Z",
+  "generatedAt": "2026-08-05T13:26:07.061Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
@@ -173,8 +173,8 @@
       "file": "elven-forest-2.glb",
       "label": "elven forest 2",
       "thumb": "/models/elven-forest-2.png",
-      "bytes": 369236,
-      "hash": "ed72ec11"
+      "bytes": 369164,
+      "hash": "fc50e8ab"
     },
     {
       "file": "enid-kingdom.glb",
