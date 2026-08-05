@@ -5,6 +5,8 @@
  *
  *   --budget=N        triangle budget (default 8000)
  *   --texture=N       max texture edge in px (default 1024)
+ *   --rot-art=DEG     rotate the artwork about Y before the base is rebuilt
+ *   --align-cut       centre the artwork on its cross-section at the cut plane
  *   --base-top=Y      where the base plate ends in the SOURCE model. Give this for
  *                     tall models (trees) -- the automatic guess picks canopy.
  *   --surface=Y       trim the base so the tile's main surface sits at height Y
@@ -56,6 +58,18 @@ const SURFACE = flag('surface', null) === null ? null : Number(flag('surface', n
 // heuristic guesses badly on tall models -- on a big tree the densest band is
 // canopy, which scaled the mother tree 6% small and made syrup-tree delete itself.
 const BASE_TOP = flag('base-top', null) === null ? null : Number(flag('base-top', null))
+// Free rotation of the artwork about Y, in degrees. The automatic correction aligns
+// the GENERATED hex base; it cannot know which way the art should face on it.
+const ROT_ART = Number(flag('rot-art', 0))
+// Centre the artwork on the base using the cross-section AT THE CUT PLANE. The
+// automatic centring uses the base ring at the very bottom, which is the wrong
+// reference when the generated base is tapered or leans: elven-forest-2 came out
+// with a perfect base and its artwork 0.027 off-centre.
+// OPT-IN. On elven-forest-2 it shifted 0.14 -- the generated base is tapered, so
+// the cross-section at the cut really is off-centre -- but the footprint fix then
+// pulled the artwork in from overhanging the tile to sitting inside it. Which of
+// those is wanted is an artistic call, so it is a checkbox, not a default.
+const ALIGN_CUT = has('align-cut')
 
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS)
 const doc = await io.read(SRC)
@@ -538,6 +552,54 @@ if (SURFACE !== null) {
   const how = BASE_TOP !== null ? ' (--base-top)' : ' (auto)'
   console.log(`  trim base: surface ${from.toFixed(3)}${how} -> ${SURFACE}`)
   trimBase(from, SURFACE)
+}
+
+// Rotate the artwork, then centre it on the plane where the base was cut. Both
+// happen BEFORE rebuildBase, so the prism is grafted onto artwork already in its
+// final position rather than the other way round.
+if (ROT_ART) {
+  const rad = ROT_ART * Math.PI / 180
+  const c = Math.cos(rad), sn = Math.sin(rad)
+  const seen = new Set()
+  for (const mesh of root.listMeshes()) for (const prim of mesh.listPrimitives()) {
+    const pos = prim.getAttribute('POSITION')
+    if (!pos || seen.has(pos)) continue
+    seen.add(pos)
+    const arr = pos.getArray().slice()
+    for (let i = 0; i < arr.length; i += 3) {
+      const x = arr[i], z = arr[i + 2]
+      arr[i] = x * c - z * sn
+      arr[i + 2] = x * sn + z * c
+    }
+    pos.setArray(arr)
+  }
+  console.log(`  rotate artwork: ${ROT_ART}deg`)
+}
+
+if (SURFACE !== null && ALIGN_CUT) {
+  // Bounding-box midpoint, not centroid: vertex density is uneven around a hex
+  // cross-section, so a centroid drifts toward whichever side has more detail.
+  const band = worldPositions().filter(p => Math.abs(p[1] - SURFACE) <= 0.02)
+  if (band.length > 8) {
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity
+    for (const p of band) {
+      if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0]
+      if (p[2] < z0) z0 = p[2]; if (p[2] > z1) z1 = p[2]
+    }
+    const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2
+    if (Math.hypot(cx, cz) > 0.0005) {
+      const seen = new Set()
+      for (const mesh of root.listMeshes()) for (const prim of mesh.listPrimitives()) {
+        const pos = prim.getAttribute('POSITION')
+        if (!pos || seen.has(pos)) continue
+        seen.add(pos)
+        const arr = pos.getArray().slice()
+        for (let i = 0; i < arr.length; i += 3) { arr[i] -= cx; arr[i + 2] -= cz }
+        pos.setArray(arr)
+      }
+      console.log(`  align on cut plane: shifted (${(-cx).toFixed(4)}, ${(-cz).toFixed(4)})`)
+    }
+  }
 }
 
 // Report how hexagonal the generated base actually is, before deciding to keep it.

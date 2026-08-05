@@ -90,6 +90,8 @@ export async function POST(req: NextRequest) {
   if (body.base_top !== undefined && body.base_top !== '' && baseTop === null) {
     return NextResponse.json({ error: 'base_top must be 0.001–5' }, { status: 400 })
   }
+  const artworkRot = num(body.artwork_rot, -180, 180, 0)
+  if (artworkRot === null) return NextResponse.json({ error: 'artwork_rot must be -180..180' }, { status: 400 })
   const budget = num(body.budget, 500, 200000, 8000)
   if (budget === null) return NextResponse.json({ error: 'budget must be 500–200000' }, { status: 400 })
 
@@ -103,6 +105,8 @@ export async function POST(req: NextRequest) {
     match_water: !!body.match_water,
     palette_lock: body.palette_lock !== false,
     rebuild_base: body.rebuild_base !== false,
+    artwork_rot: artworkRot,
+    align_cut: !!body.align_cut,
     base_top_color: HEX_RE.test(body.base_top_color ?? '') ? body.base_top_color : null,
     base_side_color: HEX_RE.test(body.base_side_color ?? '') ? body.base_side_color : null,
   }).select().single()
@@ -147,7 +151,19 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  // Re-compose: move the overlay and run the (cheap) compose again.
+  // Re-run: for a normalize this re-does the whole build with new rotation or
+  // alignment; for a compose it just moves the overlay.
+  if (status === 'queued') {
+    const rot180 = (v: unknown) => {
+      if (v === undefined) return undefined
+      const n = Number(v)
+      return Number.isFinite(n) && n >= -180 && n <= 180 ? n : null
+    }
+    const ar = rot180(body.artwork_rot)
+    if (ar === null) return NextResponse.json({ error: 'artwork_rot must be -180..180' }, { status: 400 })
+    if (ar !== undefined) patch.artwork_rot = ar
+    if (body.align_cut !== undefined) patch.align_cut = !!body.align_cut
+  }
   if (status === 'queued') {
     const inRange = (v: unknown, lo: number, hi: number) => {
       const n = Number(v ?? 0)

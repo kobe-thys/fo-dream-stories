@@ -27,6 +27,8 @@ interface Job {
   base_model: string | null
   overlay_model: string | null
   overlay_rot: number
+  artwork_rot: number
+  align_cut: boolean
   base_top_color: string | null
   base_side_color: string | null
   shift_x: number
@@ -66,6 +68,8 @@ export default function NormalizerPage() {
   const [surface, setSurface] = useState(0.2)
   const [baseTop, setBaseTop] = useState('')
   const [budget, setBudget] = useState(8000)
+  const [artRot, setArtRot] = useState('0')
+  const [alignCut, setAlignCut] = useState(false)
   const [matchWater, setMatchWater] = useState(false)
   const [rebuildBase, setRebuildBase] = useState(true)
   const [paletteLock, setPaletteLock] = useState(true)
@@ -125,6 +129,7 @@ export default function NormalizerPage() {
         body: JSON.stringify({
           source_path: path, output_name: outputName, surface,
           base_top: baseTop === '' ? undefined : Number(baseTop),
+          artwork_rot: Number(artRot) || 0, align_cut: alignCut,
           budget, match_water: matchWater, palette_lock: paletteLock, rebuild_base: rebuildBase,
         }),
       })
@@ -157,6 +162,14 @@ export default function NormalizerPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally { setBusy(false) }
+  }
+
+  async function rebuildNormalize(job: Job, patch: { artwork_rot: number; align_cut: boolean }) {
+    await fetch('/api/admin/tile-jobs', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: job.id, status: 'queued', ...patch }),
+    })
+    load()
   }
 
   async function recompose(job: Job, patch: { shift_x: number; shift_z: number; overlay_rot: number }) {
@@ -318,7 +331,7 @@ export default function NormalizerPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <label className="block">
             <span className="text-xs text-gray-400">Base top (optional)</span>
             <input
@@ -328,6 +341,15 @@ export default function NormalizerPage() {
             <span className="text-[11px] text-gray-500">
               Where the flat hex plate stops and the artwork begins. Leave blank first —
               every job logs a height profile with a suggested value.
+            </span>
+          </label>
+          <label className="block">
+            <span className="text-xs text-gray-400">Artwork rotation °</span>
+            <input value={artRot} onChange={e => setArtRot(e.target.value)} placeholder="0"
+              className="mt-1 w-full bg-gray-950 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-gray-100 font-mono" />
+            <span className="text-[11px] text-gray-500">
+              Turns the artwork on its base. The automatic correction aligns the generated
+              hex, not which way the art faces. −180 to 180.
             </span>
           </label>
           <label className="block">
@@ -363,6 +385,10 @@ export default function NormalizerPage() {
             <label className="flex gap-2 items-center">
               <input type="checkbox" checked={matchWater} onChange={e => setMatchWater(e.target.checked)} />
               Match water colour <span className="text-gray-500">(only if it has water)</span>
+            </label>
+            <label className="flex gap-2 items-center">
+              <input type="checkbox" checked={alignCut} onChange={e => setAlignCut(e.target.checked)} />
+              Centre art on the cut <span className="text-gray-500">(tapered bases)</span>
             </label>
           </div>
         </div>
@@ -415,7 +441,7 @@ export default function NormalizerPage() {
               {j.status === 'preview_ready' && (
                 j.kind === 'compose' ? (
                   <ComposePanel job={j} onRecompose={recompose} onDecide={decide} />
-                ) : <AdjustPanel
+                ) : <AdjustPanel onRebuild={rebuildNormalize}
                   // Remount when the APPLIED values change, so the fields resync
                   // after a re-preview. Unchanged values keep the key stable, so
                   // the 4s poll never clobbers what is being typed.
@@ -448,17 +474,20 @@ export default function NormalizerPage() {
  * lower-right of the image and +Z toward the lower-left.
  */
 function AdjustPanel({
-  job, onApply, onDecide,
+  job, onApply, onDecide, onRebuild,
 }: {
   job: Job
   onApply: (job: Job, patch: Partial<Job>) => void
   onDecide: (id: string, status: 'accepted' | 'failed') => void
+  onRebuild: (job: Job, patch: { artwork_rot: number; align_cut: boolean }) => void
 }) {
   const [topColor, setTopColor] = useState<string | null>(job.base_top_color)
   const [sideColor, setSideColor] = useState<string | null>(job.base_side_color)
   const [shiftX, setShiftX] = useState(String(job.shift_x ?? 0))
   const [shiftZ, setShiftZ] = useState(String(job.shift_z ?? 0))
   const [pct, setPct] = useState(String(Math.round(((job.top_scale ?? 1) - 1) * 100)))
+  const [rot, setRot] = useState(String(job.artwork_rot ?? 0))
+  const [align, setAlign] = useState(!!job.align_cut)
 
   const dirty =
     topColor !== job.base_top_color ||
@@ -548,6 +577,22 @@ function AdjustPanel({
         The hex base never moves — only the artwork on top of it.
         {!valid && <span className="text-red-400"> Value out of range.</span>}
       </p>
+
+      <div className="flex items-end gap-3 flex-wrap border-t border-gray-800 pt-3">
+        <label className="text-[11px] text-gray-400">Artwork rotation °
+          <input value={rot} onChange={e => setRot(e.target.value)} className={`${field} block mt-0.5`} /></label>
+        <label className="text-[11px] text-gray-400 flex gap-2 items-center pb-1">
+          <input type="checkbox" checked={align} onChange={e => setAlign(e.target.checked)} />
+          centre on cut
+        </label>
+        <button
+          disabled={Number(rot) === (job.artwork_rot ?? 0) && align === !!job.align_cut}
+          onClick={() => onRebuild(job, { artwork_rot: Number(rot) || 0, align_cut: align })}
+          className="px-3 py-1.5 bg-amber-800 text-amber-100 rounded-lg text-xs hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed">
+          Rebuild
+        </button>
+        <span className="text-[11px] text-gray-600">re-runs the full normalize — minutes, not seconds</span>
+      </div>
 
       <div className="flex gap-2">
         <button onClick={() => onDecide(job.id, 'accepted')}

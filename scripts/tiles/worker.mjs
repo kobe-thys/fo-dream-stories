@@ -141,6 +141,8 @@ async function normalize(job) {
       `--budget=${Math.round(Number(job.budget))}`,
     ]
     if (job.base_top != null) args.push(`--base-top=${Number(job.base_top)}`)
+    if (Number(job.artwork_rot)) args.push(`--rot-art=${Number(job.artwork_rot)}`)
+    if (job.align_cut) args.push('--align-cut')
     if (job.match_water) args.push('--match-water')
     if (job.palette_lock) args.push('--palette-lock')
     if (job.rebuild_base) args.push('--rebuild-base')
