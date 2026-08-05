@@ -143,6 +143,13 @@ export async function PATCH(req: NextRequest) {
     patch.shift_x = sx
     patch.shift_z = sz
     patch.top_scale = sc
+    // Rotation and centring are artwork transforms like shift and scale, so they
+    // belong in the cheap adjust pass rather than a full rebuild from source --
+    // a rebuild regenerates the tile and silently discarded shift/scale.
+    const ar = rng(body.artwork_rot, -180, 180, 0)
+    if (ar === null) return NextResponse.json({ error: 'artwork_rot must be -180..180' }, { status: 400 })
+    patch.artwork_rot = ar
+    if (body.align_cut !== undefined) patch.align_cut = !!body.align_cut
     if (body.base_top_color !== undefined) {
       patch.base_top_color = HEX_RE.test(body.base_top_color ?? '') ? body.base_top_color : null
     }

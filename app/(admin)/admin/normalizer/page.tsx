@@ -164,14 +164,6 @@ export default function NormalizerPage() {
     } finally { setBusy(false) }
   }
 
-  async function rebuildNormalize(job: Job, patch: { artwork_rot: number; align_cut: boolean }) {
-    await fetch('/api/admin/tile-jobs', {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: job.id, status: 'queued', ...patch }),
-    })
-    load()
-  }
-
   async function recompose(job: Job, patch: { shift_x: number; shift_z: number; overlay_rot: number }) {
     await fetch('/api/admin/tile-jobs', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -199,6 +191,8 @@ export default function NormalizerPage() {
         top_scale: patch.top_scale ?? job.top_scale ?? 1,
         base_top_color: patch.base_top_color !== undefined ? patch.base_top_color : job.base_top_color,
         base_side_color: patch.base_side_color !== undefined ? patch.base_side_color : job.base_side_color,
+        artwork_rot: patch.artwork_rot ?? job.artwork_rot ?? 0,
+        align_cut: patch.align_cut !== undefined ? patch.align_cut : job.align_cut,
       }),
     })
     load()
@@ -441,11 +435,11 @@ export default function NormalizerPage() {
               {j.status === 'preview_ready' && (
                 j.kind === 'compose' ? (
                   <ComposePanel job={j} onRecompose={recompose} onDecide={decide} />
-                ) : <AdjustPanel onRebuild={rebuildNormalize}
+                ) : <AdjustPanel
                   // Remount when the APPLIED values change, so the fields resync
                   // after a re-preview. Unchanged values keep the key stable, so
                   // the 4s poll never clobbers what is being typed.
-                  key={`${j.id}:${j.shift_x}:${j.shift_z}:${j.top_scale}:${j.base_top_color}`}
+                  key={`${j.id}:${j.shift_x}:${j.shift_z}:${j.top_scale}:${j.base_top_color}:${j.base_side_color}:${j.artwork_rot}:${j.align_cut}`}
                   job={j} onApply={requestAdjust} onDecide={decide}
                 />
               )}
@@ -474,12 +468,11 @@ export default function NormalizerPage() {
  * lower-right of the image and +Z toward the lower-left.
  */
 function AdjustPanel({
-  job, onApply, onDecide, onRebuild,
+  job, onApply, onDecide,
 }: {
   job: Job
   onApply: (job: Job, patch: Partial<Job>) => void
   onDecide: (id: string, status: 'accepted' | 'failed') => void
-  onRebuild: (job: Job, patch: { artwork_rot: number; align_cut: boolean }) => void
 }) {
   const [topColor, setTopColor] = useState<string | null>(job.base_top_color)
   const [sideColor, setSideColor] = useState<string | null>(job.base_side_color)
@@ -492,6 +485,8 @@ function AdjustPanel({
   const dirty =
     topColor !== job.base_top_color ||
     sideColor !== job.base_side_color ||
+    Number(rot) !== (job.artwork_rot ?? 0) ||
+    align !== !!job.align_cut ||
     Number(shiftX) !== (job.shift_x ?? 0) ||
     Number(shiftZ) !== (job.shift_z ?? 0) ||
     Number(pct) !== Math.round(((job.top_scale ?? 1) - 1) * 100)
@@ -544,6 +539,14 @@ function AdjustPanel({
           Size %
           <input value={pct} onChange={e => setPct(e.target.value)} className={`${field} block mt-0.5`} />
         </label>
+        <label className="text-[11px] text-gray-400">
+          Rotation °
+          <input value={rot} onChange={e => setRot(e.target.value)} className={`${field} block mt-0.5`} />
+        </label>
+        <label className="text-[11px] text-gray-400 flex gap-2 items-center pb-1.5">
+          <input type="checkbox" checked={align} onChange={e => setAlign(e.target.checked)} />
+          centre on base
+        </label>
         <button
           disabled={!dirty || !valid}
           onClick={() => onApply(job, {
@@ -552,6 +555,8 @@ function AdjustPanel({
             shift_x: num(shiftX),
             shift_z: num(shiftZ),
             top_scale: 1 + num(pct) / 100,
+            artwork_rot: num(rot),
+            align_cut: align,
           })}
           className="px-3 py-1.5 bg-blue-800 text-blue-100 rounded-lg text-xs hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
         >
@@ -561,6 +566,7 @@ function AdjustPanel({
           <button
             onClick={() => {
               setTopColor(job.base_top_color); setSideColor(job.base_side_color)
+              setRot(String(job.artwork_rot ?? 0)); setAlign(!!job.align_cut)
               setShiftX(String(job.shift_x ?? 0)); setShiftZ(String(job.shift_z ?? 0))
               setPct(String(Math.round(((job.top_scale ?? 1) - 1) * 100)))
             }}
@@ -571,28 +577,14 @@ function AdjustPanel({
       </div>
 
       <p className="text-[11px] text-gray-600 leading-relaxed">
+        Rotation turns the artwork on its base; &ldquo;centre on base&rdquo; pulls it onto the
+        hex centre first, then your shift is applied on top. The base never moves.{' '}
         In the preview, <b className="text-gray-400">+X</b> moves the artwork toward the
         lower-right, <b className="text-gray-400">+Z</b> toward the lower-left. Units are
         tile widths, so 0.05 ≈ 5% of a hex. Shift ±0.5, size −50% to +100%.
         The hex base never moves — only the artwork on top of it.
         {!valid && <span className="text-red-400"> Value out of range.</span>}
       </p>
-
-      <div className="flex items-end gap-3 flex-wrap border-t border-gray-800 pt-3">
-        <label className="text-[11px] text-gray-400">Artwork rotation °
-          <input value={rot} onChange={e => setRot(e.target.value)} className={`${field} block mt-0.5`} /></label>
-        <label className="text-[11px] text-gray-400 flex gap-2 items-center pb-1">
-          <input type="checkbox" checked={align} onChange={e => setAlign(e.target.checked)} />
-          centre on cut
-        </label>
-        <button
-          disabled={Number(rot) === (job.artwork_rot ?? 0) && align === !!job.align_cut}
-          onClick={() => onRebuild(job, { artwork_rot: Number(rot) || 0, align_cut: align })}
-          className="px-3 py-1.5 bg-amber-800 text-amber-100 rounded-lg text-xs hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed">
-          Rebuild
-        </button>
-        <span className="text-[11px] text-gray-600">re-runs the full normalize — minutes, not seconds</span>
-      </div>
 
       <div className="flex gap-2">
         <button onClick={() => onDecide(job.id, 'accepted')}

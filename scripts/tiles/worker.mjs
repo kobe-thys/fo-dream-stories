@@ -230,12 +230,15 @@ async function adjust(job) {
     // Composed tiles have no hexBase mesh, so adjust-tile has nothing to anchor
     // against; re-compose instead by editing the job's shift and re-queueing.
     if (job.kind === 'compose') throw new Error('use Re-compose to move a composed overlay')
-    await run('node', [
+    const adjArgs = [
       path.join(REPO, 'scripts/tiles/adjust-tile.mjs'), cached,
       `--shift-x=${Number(job.shift_x) || 0}`,
       `--shift-z=${Number(job.shift_z) || 0}`,
       `--scale=${Number(job.top_scale) || 1}`,
-    ], { cwd: REPO })
+      `--rot=${Number(job.artwork_rot) || 0}`,
+    ]
+    if (job.align_cut) adjArgs.push('--center')
+    await run('node', adjArgs, { cwd: REPO })
 
     const png = path.join(os.tmpdir(), `tilejob-${job.id}.png`)
     await run('python3', [path.join(REPO, 'scripts/tiles/render_glb.py'), cached, png],
