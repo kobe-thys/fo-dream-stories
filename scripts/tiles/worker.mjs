@@ -294,6 +294,28 @@ async function tick() {
   else await install(job)
 }
 
+/**
+ * Reclaim jobs orphaned by a worker restart.
+ *
+ * A job is marked 'running' by the worker that owns it. If that process dies --
+ * a systemd restart during a deploy, a crash, a reboot -- the row stays 'running'
+ * forever and the UI shows a spinner for a job nobody is doing. There is exactly
+ * one worker, so anything still 'running' at startup is by definition abandoned.
+ *
+ * 'adjust' and 'accepted' are left alone: both are cheap and idempotent, and the
+ * poll below picks them up on its own.
+ */
+async function reclaimOrphans() {
+  const { data, error } = await db.from('tile_jobs')
+    .update({ status: 'queued', log: 'Requeued: the worker restarted while this job was running.' })
+    .eq('status', 'running')
+    .select('output_name')
+  if (error) { log('orphan sweep failed:', error.message); return }
+  if (data?.length) log(`requeued ${data.length} orphaned job(s): ${data.map(j => j.output_name).join(', ')}`)
+}
+
+await reclaimOrphans()
+
 log(`worker up — repo ${REPO}, polling every ${POLL_MS}ms`)
 for (;;) {
   await tick().catch(e => log('tick error:', e.message))
