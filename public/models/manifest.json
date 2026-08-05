@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-05T16:17:05.200Z",
+  "generatedAt": "2026-08-05T16:18:17.632Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
@@ -434,6 +434,13 @@
       "thumb": "/models/grass-path-tower%20end.png",
       "bytes": 31260,
       "hash": "4722eda2"
+    },
+    {
+      "file": "grass-path-wall-tower start.glb",
+      "label": "grass path wall tower start",
+      "thumb": "/models/grass-path-wall-tower%20start.png",
+      "bytes": 27388,
+      "hash": "214c868d"
     },
     {
       "file": "grass-tower.glb",
