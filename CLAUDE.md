@@ -35,3 +35,31 @@ regenerates the manifest, commits and pushes — Vercel deploys in ~60 s.
 **Security:** `tile_jobs` rows are written from a public admin page and acted on by a
 process on a personal machine. The worker builds argv from TYPED columns only and
 uses `execFile`, never a shell. Never add a free-form flags/command column.
+
+### Tile scripts (`scripts/tiles/`)
+
+| script | does |
+|---|---|
+| `normalize-tile.mjs` | generated GLB → Kenney contract. `--surface` target height, `--base-top` where the plate ends in the source, `--rot-art` artwork rotation, `--rebuild-base`, `--palette-lock`, `--match-water` |
+| `inspect-tile.mjs` | cross-section width per height band + a suggested `--base-top` |
+| `strip-lights.mjs` | removes the generator's 4 embedded lights |
+| `fix-materials.mjs` | metallic→0, prism side → Kenney dirt, `--base-top=#hex` |
+| `adjust-tile.mjs` | moves the ARTWORK on a built tile: rotate, scale, `--center`, shift. Base never moves |
+| `compose-tile.mjs` | lifts an overlay onto a base tile and merges them |
+| `find-open-spot.mjs` | most open spot on a tile, for placing a prop clear of a path |
+| `recolour-tile.py` | repaints texture regions selected by GEOMETRY (ground / trunk / skirt masks) |
+| `remove-tile.mjs` | deletes an installed tile, refusing if it is still placed on the map |
+| `worker.mjs` | the job runner (see above) |
+
+**Measured constants — do not re-derive.** Surfaces: grass/sand/stone **0.200**,
+water/dirt **0.100**, river channel **0.162**. Colours: grass **#48c1a3**, dirt
+**#f1976c**. Hex: pointy-top, R=0.5774, footprint 1.000 × 1.155, base on y=0.
+
+**Two traps in every AI-generated GLB:** `metallicFactor` is absent and glTF defaults
+it to 1.0 (tiles render as mirrors), and each carries 4 `KHR_lights_punctual` lights
+that accumulate across the map. The worker strips both; a tile built outside the
+worker needs `strip-lights` + `fix-materials` run by hand.
+
+**Never restart the worker while a job runs** — it used to strand the row on
+`running` forever. It now requeues orphans at startup, but the job restarts from
+scratch.
