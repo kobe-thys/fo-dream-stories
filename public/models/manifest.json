@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-11T12:49:39.222Z",
+  "generatedAt": "2026-08-11T16:33:05.093Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
@@ -798,6 +798,13 @@
       "thumb": "/models/syrup-tree.png",
       "bytes": 337492,
       "hash": "4d725a1a"
+    },
+    {
+      "file": "tinkle-trunk-notes.glb",
+      "label": "tinkle trunk notes",
+      "thumb": "/models/tinkle-trunk-notes.png",
+      "bytes": 477356,
+      "hash": "b18cc05e"
     },
     {
       "file": "tinkle-trunk.glb",
