@@ -28,9 +28,20 @@ const COUNT = Math.max(1, Math.round(num('count', 5)))
 const SPREAD = num('spread', 0.30)
 const SIZE = num('size', 0.28)
 const SIDES = Math.max(6, Math.round(num('sides', 10)))
-let seed = Math.round(num('seed', 3))
+const seed = Math.round(num('seed', 3))
 
-const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296 }
+// mulberry32. The previous LCG correlated consecutive draws badly enough that all
+// eight mushrooms landed in the same half of the tile — with several values pulled
+// per item, a weak generator shows up as visible clustering.
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0
+    let t = Math.imul(a ^ a >>> 15, 1 | a)
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t
+    return ((t ^ t >>> 14) >>> 0) / 4294967296
+  }
+}
+const rnd = mulberry32(seed)
 const between = (a, b) => a + (b - a) * rnd()
 const pick = arr => arr[Math.floor(rnd() * arr.length) % arr.length]
 
@@ -115,7 +126,9 @@ for (let i = 0; i < COUNT; i++) {
   // specific mushroom rather than floating vaguely over the patch.
   const capTop = place([0, PROFILE[PROFILE.length - 1][1], 0])
   tops.push(capTop.map(v => v.toFixed(3)).join(','))
-  const hex = pick(CAPS)
+  // Two mushrooms per colour. Random picks left lonely singletons and duplicate
+  // neighbours; pairing reads as deliberate.
+  const hex = CAPS[Math.floor(i / 2) % CAPS.length]
   if (!capsByColour.has(hex)) capsByColour.set(hex, { pos: [], nor: [] })
   lathe(PROFILE, 0, CAP_START, SIDES, stem, place)
   lathe(PROFILE, CAP_START, PROFILE.length - 1, SIDES, capsByColour.get(hex), place)

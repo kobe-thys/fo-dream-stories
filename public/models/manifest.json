@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-11T16:46:51.378Z",
+  "generatedAt": "2026-08-11T18:53:45.779Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
@@ -455,6 +455,13 @@
       "thumb": "/models/grass-path-wall-tower-rainbow.png",
       "bytes": 63936,
       "hash": "dfb2fc64"
+    },
+    {
+      "file": "grass-singing-mushrooms.glb",
+      "label": "grass singing mushrooms",
+      "thumb": "/models/grass-singing-mushrooms.png",
+      "bytes": 644240,
+      "hash": "855bf3be"
     },
     {
       "file": "grass-tower.glb",

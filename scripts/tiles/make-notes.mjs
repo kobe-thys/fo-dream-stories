@@ -31,10 +31,21 @@ const SPREAD = num('spread', 0.26)
 const RISE = num('rise', 0.34)
 const SIZE = num('size', 0.075)
 const COLOR = flag('color', '#3a3f5c')
-let seed = Math.round(num('seed', 7))
+const seed = Math.round(num('seed', 7))
 
 // Deterministic LCG — a fixed seed must always give the same cloud.
-const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296 }
+// mulberry32. The previous LCG correlated consecutive draws badly enough that all
+// eight mushrooms landed in the same half of the tile — with several values pulled
+// per item, a weak generator shows up as visible clustering.
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0
+    let t = Math.imul(a ^ a >>> 15, 1 | a)
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t
+    return ((t ^ t >>> 14) >>> 0) / 4294967296
+  }
+}
+const rnd = mulberry32(seed)
 const between = (a, b) => a + (b - a) * rnd()
 
 const srgbToLinear = c => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4))
