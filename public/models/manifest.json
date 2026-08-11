@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-05T16:18:17.632Z",
+  "generatedAt": "2026-08-11T12:41:26.969Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
@@ -455,6 +455,13 @@
       "thumb": "/models/grass-tree.png",
       "bytes": 18280,
       "hash": "478c0e23"
+    },
+    {
+      "file": "grass-wall-tower-rainbow.glb",
+      "label": "grass wall tower rainbow",
+      "thumb": "/models/grass-wall-tower-rainbow.png",
+      "bytes": 61184,
+      "hash": "5ba7ed53"
     },
     {
       "file": "grass-wall-tower.glb",
