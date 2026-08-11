@@ -73,6 +73,11 @@ async function compose(job) {
       `--rot=${Math.round(Number(job.overlay_rot) || 0)}`,
     ], { cwd: REPO, maxBuffer: 16 * 1024 * 1024, timeout: 10 * 60_000 })
 
+    // A composed tile inherits whatever its base carries, so strip and normalise
+    // materials here too rather than trusting the inputs.
+    await run('node', [path.join(REPO, 'scripts/tiles/strip-lights.mjs'), out], { cwd: REPO })
+    await run('node', [path.join(REPO, 'scripts/tiles/fix-materials.mjs'), out, '--keep-side'], { cwd: REPO })
+
     const png = out.replace(/\.glb$/i, '.png')
     await run('python3', [path.join(REPO, 'scripts/tiles/render_glb.py'), out, png],
               { cwd: REPO, timeout: 15 * 60_000 })

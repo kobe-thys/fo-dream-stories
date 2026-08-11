@@ -42,7 +42,12 @@ export async function stripLights(doc) {
   return removed
 }
 
+let missing = 0
 for (const f of files) {
+  // Skip, do not throw. Crashing on one bad path used to abandon every file after
+  // it: a batch died on a rejected tile and left five tiles with their lights,
+  // which then brightened the map again days later.
+  if (!fs.existsSync(f)) { console.warn(`  ${f} — MISSING, skipped`); missing++; continue }
   const before = fs.statSync(f).size
   const doc = await io.read(f)
   const removed = await stripLights(doc)
@@ -50,4 +55,8 @@ for (const f of files) {
   await io.write(f, doc)
   const after = fs.statSync(f).size
   console.log(`  ${f.split('/').pop()} — removed ${removed} light refs, ${(before/1024).toFixed(0)}KB -> ${(after/1024).toFixed(0)}KB`)
+}
+if (missing) {
+  console.error(`\n${missing} file(s) missing — exiting non-zero so a batch does not look clean`)
+  process.exit(1)
 }

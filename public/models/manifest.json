@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-11T16:33:05.093Z",
+  "generatedAt": "2026-08-11T16:46:51.378Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
@@ -159,15 +159,15 @@
       "file": "dragon-mountain-sea.glb",
       "label": "dragon mountain sea",
       "thumb": "/models/dragon-mountain-sea.png",
-      "bytes": 299076,
-      "hash": "37bbede5"
+      "bytes": 298640,
+      "hash": "332c19d9"
     },
     {
       "file": "dragon-mountain.glb",
       "label": "dragon mountain",
       "thumb": "/models/dragon-mountain.png",
-      "bytes": 390664,
-      "hash": "43957039"
+      "bytes": 390228,
+      "hash": "ae082085"
     },
     {
       "file": "elven-forest-2.glb",
@@ -628,8 +628,8 @@
       "file": "raindrop-castle.glb",
       "label": "raindrop castle",
       "thumb": "/models/raindrop-castle.png",
-      "bytes": 3587792,
-      "hash": "ccb8d73b"
+      "bytes": 3587360,
+      "hash": "746d924b"
     },
     {
       "file": "river-corner-sharp.glb",
@@ -782,15 +782,15 @@
       "file": "sun-cave.glb",
       "label": "sun cave",
       "thumb": "/models/sun-cave.png",
-      "bytes": 339632,
-      "hash": "90b50fd2"
+      "bytes": 339196,
+      "hash": "e2303947"
     },
     {
       "file": "sunken-elven-ship.glb",
       "label": "sunken elven ship",
       "thumb": "/models/sunken-elven-ship.png",
-      "bytes": 370420,
-      "hash": "6ea63c0e"
+      "bytes": 369984,
+      "hash": "c287f9aa"
     },
     {
       "file": "syrup-tree.glb",
