@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-11T12:41:26.969Z",
+  "generatedAt": "2026-08-11T12:49:39.222Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
@@ -436,11 +436,25 @@
       "hash": "4722eda2"
     },
     {
+      "file": "grass-path-tower-rainbow.glb",
+      "label": "grass path tower rainbow",
+      "thumb": "/models/grass-path-tower-rainbow.png",
+      "bytes": 67808,
+      "hash": "bcc5579e"
+    },
+    {
       "file": "grass-path-wall-tower start.glb",
       "label": "grass path wall tower start",
       "thumb": "/models/grass-path-wall-tower%20start.png",
       "bytes": 27388,
       "hash": "214c868d"
+    },
+    {
+      "file": "grass-path-wall-tower-rainbow.glb",
+      "label": "grass path wall tower rainbow",
+      "thumb": "/models/grass-path-wall-tower-rainbow.png",
+      "bytes": 63936,
+      "hash": "dfb2fc64"
     },
     {
       "file": "grass-tower.glb",
@@ -460,8 +474,8 @@
       "file": "grass-wall-tower-rainbow.glb",
       "label": "grass wall tower rainbow",
       "thumb": "/models/grass-wall-tower-rainbow.png",
-      "bytes": 61184,
-      "hash": "5ba7ed53"
+      "bytes": 61180,
+      "hash": "5c921e74"
     },
     {
       "file": "grass-wall-tower.glb",
