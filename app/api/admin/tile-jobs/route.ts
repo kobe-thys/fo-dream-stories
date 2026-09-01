@@ -69,6 +69,56 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(data)
   }
 
+  // ── forge: an approved concept drawing becomes a tile ──────────────────
+  // The drawing was already made and stored by /api/admin/forge/concept. All that
+  // travels to the worker is the object KEY plus numbers -- never the idea text,
+  // which is stored for display only. See migration 015.
+  if (body.kind === 'forge') {
+    const outputName = String(body.output_name ?? '')
+    if (!NAME_RE.test(outputName)) {
+      return NextResponse.json({ error: 'output_name must be a simple .glb filename' }, { status: 400 })
+    }
+    const conceptPath = String(body.concept_path ?? '')
+    if (!/^concepts\/[A-Za-z0-9._-]{1,120}\.png$/.test(conceptPath)) {
+      return NextResponse.json({ error: 'Approve a concept drawing first' }, { status: 400 })
+    }
+    const range = (v: unknown, lo: number, hi: number, dflt: number | null) => {
+      if (v === undefined || v === null || v === '') return dflt
+      const n = Number(v)
+      return Number.isFinite(n) && n >= lo && n <= hi ? n : null
+    }
+    const surface = range(body.surface, 0.01, 2, null)
+    if (surface === null) return NextResponse.json({ error: 'surface must be 0.01–2' }, { status: 400 })
+    const polycount = range(body.polycount, 1000, 100000, 10000)
+    if (polycount === null) return NextResponse.json({ error: 'polycount must be 1000–100000' }, { status: 400 })
+    const budget = range(body.budget, 500, 200000, 8000)
+    if (budget === null) return NextResponse.json({ error: 'budget must be 500–200000' }, { status: 400 })
+    const skirt = body.skirt === undefined || body.skirt === '' ? null : range(body.skirt, 0, 2, null)
+    if (body.skirt !== undefined && body.skirt !== '' && skirt === null) {
+      return NextResponse.json({ error: 'skirt must be 0–2' }, { status: 400 })
+    }
+
+    const db = adminClient()
+    const { data, error } = await db.from('tile_jobs').insert({
+      kind: 'forge',
+      output_name: outputName,
+      idea: String(body.idea ?? '').slice(0, 2000),
+      concept_path: conceptPath,
+      surface,
+      polycount: Math.round(polycount),
+      budget: Math.round(budget),
+      skirt,
+      rebuild_base: body.rebuild_base !== false,
+      // kenney-flatten does the palette now. The old --palette-lock is biased
+      // toward blue and must not run on forge output.
+      palette_lock: false,
+      match_water: false,
+      source_path: null,
+    }).select().single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json(data)
+  }
+
   const sourcePath = String(body.source_path ?? '')
   const outputName = String(body.output_name ?? '')
   if (!sourcePath || sourcePath.includes('..')) {

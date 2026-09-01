@@ -3,11 +3,22 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 
 /**
- * Admin normalizer — enqueue tile jobs for the worker on Kobe's machine.
+ * Tile workshop — three ways to make a tile, all finished by the worker.
  *
- * Nothing here runs the normalizer. Vercel cannot: heavy tiles need minutes and
- * ~8 GB, and public/ is not writable in production. This page uploads the source
- * to Storage, writes a job row, and watches it. The worker does the rest.
+ *   Forge      an idea in words -> concept drawing -> (revise)* -> tile
+ *   Normalize  a GLB you generated elsewhere -> tile
+ *   Compose    two installed models stacked -> tile
+ *
+ * Almost nothing here runs the work. Vercel cannot: a tile needs minutes and ~8 GB,
+ * and public/ is not writable in production. This page writes a job row and watches
+ * it; the worker on Kobe's machine builds, previews, and on accept installs and
+ * pushes.
+ *
+ * The ONE exception is drawing a concept. That is a single ~35s API call, and
+ * putting it behind the queue would make the revise loop feel dead, so it runs on
+ * Vercel via /api/admin/forge/concept and returns the image straight back. Drafts
+ * live in component state, so abandoned ideas never reach the queue -- a row is
+ * written only when a drawing is approved.
  */
 
 interface Job {
@@ -34,6 +45,17 @@ interface Job {
   shift_x: number
   shift_z: number
   top_scale: number
+  idea: string | null
+  concept_path: string | null
+  polycount: number
+  skirt: number | null
+}
+
+/** One drawing in the forge's idea → draw → revise loop. */
+interface Concept {
+  path: string
+  url: string
+  note: string          // "first draft", or the change that produced it
 }
 
 // Kenney surface colours, measured off the kit — the usual choices for a base top.
@@ -73,7 +95,19 @@ export default function NormalizerPage() {
   const [matchWater, setMatchWater] = useState(false)
   const [rebuildBase, setRebuildBase] = useState(true)
   const [paletteLock, setPaletteLock] = useState(true)
-  const [tab, setTab] = useState<'normalize' | 'compose'>('normalize')
+  const [tab, setTab] = useState<'forge' | 'normalize' | 'compose'>('forge')
+  // Forge: idea -> drawing -> (revise)* -> approve. Drafts live here rather than in
+  // tile_jobs, so abandoned ideas never reach the queue.
+  const [fIdea, setFIdea] = useState('')
+  const [fDrafts, setFDrafts] = useState<Concept[]>([])
+  const [fPicked, setFPicked] = useState(0)
+  const [fRevise, setFRevise] = useState('')
+  const [fName, setFName] = useState('')
+  const [fSurface, setFSurface] = useState(0.2)
+  const [fPoly, setFPoly] = useState(10000)
+  const [fSkirt, setFSkirt] = useState(true)
+  const [fRebuild, setFRebuild] = useState(true)
+  const [drawing, setDrawing] = useState(false)
   const [modelFiles, setModelFiles] = useState<string[]>([])
   const [cBase, setCBase] = useState('grass.glb')
   const [cOverlay, setCOverlay] = useState('unit-tree.glb')
@@ -144,6 +178,63 @@ export default function NormalizerPage() {
     }
   }
 
+  /**
+   * Draw the first concept, or revise the one on screen.
+   *
+   * A revision is sent as an EDIT of the picked drawing, not a fresh prompt, so
+   * "make the towers taller" keeps the castle rather than inventing a new one.
+   */
+  async function draw(revise?: string) {
+    if (!fIdea.trim()) return
+    setDrawing(true); setError(null)
+    try {
+      const from = revise ? fDrafts[fPicked]?.path : undefined
+      const res = await fetch('/api/admin/forge/concept', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idea: fIdea, revise, from_path: from }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error || 'Could not draw the concept')
+      const { path, url } = await res.json()
+      setFDrafts(d => {
+        const next = [...d, { path, url, note: revise || 'first draft' }]
+        setFPicked(next.length - 1)
+        return next
+      })
+      setFRevise('')
+      if (!fName) {
+        setFName(fIdea.toLowerCase().split(/\s+/).slice(0, 4).join('-')
+          .replace(/[^a-z0-9-]/g, '').replace(/^-|-$/g, '').slice(0, 40) + '.glb')
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally { setDrawing(false) }
+  }
+
+  /** Approve the picked drawing and hand it to the worker. */
+  async function approveConcept() {
+    const picked = fDrafts[fPicked]
+    if (!picked || !fName) return
+    setBusy(true); setError(null)
+    try {
+      const res = await fetch('/api/admin/tile-jobs', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kind: 'forge', output_name: fName, idea: fIdea, concept_path: picked.path,
+          surface: fSurface, polycount: fPoly, budget: 8000,
+          // The skirt sits just under the surface: a top face reading a hair below
+          // the surface height would otherwise be repainted as dirt.
+          skirt: fSkirt ? Number((fSurface - 0.01).toFixed(3)) : undefined,
+          rebuild_base: fRebuild,
+        }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error || 'Could not queue the tile')
+      setFDrafts([]); setFPicked(0); setFIdea(''); setFName('')
+      load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally { setBusy(false) }
+  }
+
   async function submitCompose() {
     if (!cName) return
     setBusy(true); setError(null)
@@ -210,24 +301,146 @@ export default function NormalizerPage() {
   return (
     <div className="max-w-6xl space-y-8">
       <div>
-        <h1 className="text-xl font-semibold text-gray-100">Tile normalizer</h1>
+        <h1 className="text-xl font-semibold text-gray-100">Tile workshop</h1>
         <p className="text-sm text-gray-400 mt-1">
-          Upload a generated GLB, say which surface it should sit on, and the worker on
-          your machine normalizes it to the Kenney contract. Review the preview before
-          it is installed.
+          Make a tile from a written idea, normalize one you generated elsewhere, or
+          stack two you already have. Every route ends the same way: the worker on your
+          machine builds it, you review the preview, and only then is it installed.
         </p>
       </div>
 
-      <div className="flex gap-2">
-        {(['normalize', 'compose'] as const).map(t => (
+      <div className="flex gap-2 flex-wrap">
+        {(['forge', 'normalize', 'compose'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-1.5 rounded-lg text-xs border ${tab === t
               ? 'bg-purple-900 border-purple-600 text-purple-100'
               : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'}`}>
-            {t === 'normalize' ? 'Normalize a generated GLB' : 'Compose from existing tiles'}
+            {{ forge: 'Make a tile from an idea',
+               normalize: 'Normalize a generated GLB',
+               compose: 'Compose from existing tiles' }[t]}
           </button>
         ))}
       </div>
+
+      {tab === 'forge' && (
+        <div className="border border-gray-800 rounded-xl p-5 space-y-5 bg-gray-900/40">
+          <p className="text-xs text-gray-400">
+            Describe the tile. You get a drawing back in about half a minute — change
+            it as many times as you like, and nothing is built until you approve one.
+            Approving spends 30 Meshy credits and takes a few minutes.
+          </p>
+
+          <label className="block">
+            <span className="text-xs text-gray-400">What is on this tile?</span>
+            <textarea
+              value={fIdea} onChange={e => setFIdea(e.target.value)} rows={3}
+              placeholder="a pegasus made of ice and starlight, standing on a mound of soft clouds, wings spread"
+              className="mt-1 w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100" />
+          </label>
+
+          {fDrafts.length === 0 && (
+            <button onClick={() => draw()} disabled={!fIdea.trim() || drawing}
+              className="px-4 py-2 bg-purple-700 text-white rounded-lg text-sm hover:bg-purple-600 disabled:opacity-40">
+              {drawing ? 'Drawing…' : 'Draw it'}
+            </button>
+          )}
+
+          {fDrafts.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex gap-4 items-start flex-wrap">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={fDrafts[fPicked].url} alt="Concept drawing"
+                  className="w-72 h-72 object-contain rounded-lg border border-gray-700 bg-white" />
+                <div className="space-y-3 flex-1 min-w-64">
+                  <div>
+                    <span className="text-xs text-gray-400">Not right? Say what to change</span>
+                    <textarea
+                      value={fRevise} onChange={e => setFRevise(e.target.value)} rows={2}
+                      placeholder="make the clouds bigger and the wings less spiky"
+                      className="mt-1 w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100" />
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <button onClick={() => draw(fRevise)} disabled={!fRevise.trim() || drawing}
+                      className="px-3 py-1.5 bg-gray-800 border border-gray-700 text-gray-200 rounded-lg text-xs hover:bg-gray-700 disabled:opacity-40">
+                      {drawing ? 'Drawing…' : 'Change it'}
+                    </button>
+                    <button onClick={() => draw()} disabled={drawing}
+                      className="px-3 py-1.5 bg-gray-800 border border-gray-700 text-gray-200 rounded-lg text-xs hover:bg-gray-700 disabled:opacity-40">
+                      Draw another
+                    </button>
+                    <button onClick={() => { setFDrafts([]); setFPicked(0); setFRevise('') }}
+                      className="px-3 py-1.5 text-gray-500 rounded-lg text-xs hover:text-gray-300">
+                      Start over
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-gray-600">
+                    &ldquo;Change it&rdquo; edits the drawing you have selected, so the design survives.
+                    &ldquo;Draw another&rdquo; starts a fresh one from the same description.
+                  </p>
+                </div>
+              </div>
+
+              {fDrafts.length > 1 && (
+                <div className="flex gap-2 flex-wrap items-center">
+                  <span className="text-[11px] text-gray-500">Drafts:</span>
+                  {fDrafts.map((d, i) => (
+                    <button key={d.path} onClick={() => setFPicked(i)} title={d.note}
+                      className={`w-14 h-14 rounded border overflow-hidden ${i === fPicked
+                        ? 'border-purple-500 ring-1 ring-purple-500' : 'border-gray-700 opacity-60 hover:opacity-100'}`}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={d.url} alt={d.note} className="w-full h-full object-contain bg-white" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="border-t border-gray-800 pt-4 space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <label className="block">
+                    <span className="text-xs text-gray-400">Tile name</span>
+                    <input value={fName} onChange={e => setFName(e.target.value)}
+                      placeholder="pegasus.glb"
+                      className="mt-1 w-full bg-gray-950 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-gray-100" />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs text-gray-400">Sits on</span>
+                    <select value={fSurface} onChange={e => setFSurface(Number(e.target.value))}
+                      className="mt-1 w-full bg-gray-950 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-gray-100">
+                      {SURFACES.map(s => (
+                        <option key={s.value} value={s.value}>{s.label} — {s.value}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <div className="flex items-end gap-4 flex-wrap">
+                  <label className="text-[11px] text-gray-400">Meshy triangles
+                    <input type="number" value={fPoly} min={1000} max={100000} step={1000}
+                      onChange={e => setFPoly(Number(e.target.value))}
+                      className="block mt-0.5 w-24 bg-gray-950 border border-gray-700 rounded px-2 py-1 text-xs text-gray-100 font-mono" /></label>
+                  <label className="flex items-center gap-2 text-[11px] text-gray-400">
+                    <input type="checkbox" checked={fRebuild} onChange={e => setFRebuild(e.target.checked)} />
+                    Rebuild the hex base
+                  </label>
+                  <label className="flex items-center gap-2 text-[11px] text-gray-400">
+                    <input type="checkbox" checked={fSkirt} onChange={e => setFSkirt(e.target.checked)} />
+                    Force a Kenney dirt skirt
+                  </label>
+                  <button onClick={approveConcept} disabled={!fName || busy}
+                    className="px-4 py-2 bg-purple-700 text-white rounded-lg text-sm hover:bg-purple-600 disabled:opacity-40">
+                    {busy ? 'Queueing…' : 'Approve & build the tile'}
+                  </button>
+                </div>
+                <p className="text-[11px] text-gray-600">
+                  A generated hex is rarely regular enough to tile, so rebuilding the base is
+                  usually right. Leave it off only when the base itself carries artwork you
+                  want to keep — rebuilding flattens it.
+                </p>
+              </div>
+            </div>
+          )}
+          {error && <div className="text-xs text-red-400">{error}</div>}
+        </div>
+      )}
 
       {tab === 'compose' && (
         <div className="border border-gray-800 rounded-xl p-5 space-y-4 bg-gray-900/40">
@@ -283,7 +496,7 @@ export default function NormalizerPage() {
       )}
 
       {/* ── new job ── */}
-      <div className={`border border-gray-800 rounded-xl p-5 space-y-4 bg-gray-900/40 ${tab === 'compose' ? 'hidden' : ''}`}>
+      <div className={`border border-gray-800 rounded-xl p-5 space-y-4 bg-gray-900/40 ${tab === 'normalize' ? '' : 'hidden'}`}>
         <div className="grid grid-cols-2 gap-4">
           <label className="block">
             <span className="text-xs text-gray-400">Source GLB</span>

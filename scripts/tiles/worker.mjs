@@ -107,6 +107,116 @@ async function compose(job) {
   }
 }
 
+/**
+ * Forge: an approved concept drawing becomes a tile.
+ *
+ *   concept.png -> Meshy image-to-3D -> normalize -> kenney-flatten -> preview
+ *
+ * The drawing was made on Vercel and stored in tile-previews/concepts/. Only its
+ * OBJECT KEY reaches this process -- the idea text never does, so nothing here is
+ * built from free-form input.
+ *
+ * `strip-lights` and `fix-materials` are deliberately NOT run. Meshy is asked for
+ * enable_pbr=false, which already yields metallicFactor 0 and no embedded
+ * KHR_lights_punctual, and kenney-flatten rewrites every material anyway. Running
+ * the old fixers would only undo the colours it has just settled.
+ */
+async function forge(job) {
+  if (!NAME_RE.test(job.output_name)) {
+    return setStatus(job.id, { status: 'failed', log: `unsafe output_name: ${job.output_name}` })
+  }
+  if (!/^concepts\/[A-Za-z0-9._-]{1,120}\.png$/.test(String(job.concept_path || ''))) {
+    return setStatus(job.id, { status: 'failed', log: `unsafe concept_path: ${job.concept_path}` })
+  }
+  if (!process.env.MESHY_API_KEY) {
+    return setStatus(job.id, {
+      status: 'failed',
+      log: 'MESHY_API_KEY is not set in this worker. Add it to /root/.secrets/tokens.env, '
+         + 'then: systemctl restart fo-tile-worker',
+    })
+  }
+
+  await setStatus(job.id, { status: 'running', log: null })
+  log(`forging ${job.output_name} (surface=${job.surface}, polycount=${job.polycount})`)
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'tilejob-'))
+  const concept = path.join(tmp, 'concept.png')
+  const raw = path.join(tmp, 'raw.glb')
+  const norm = path.join(tmp, 'norm.glb')
+  const out = path.join(tmp, job.output_name)
+  let stdout = ''
+
+  try {
+    const { data, error } = await db.storage.from('tile-previews').download(job.concept_path)
+    if (error) throw new Error(`could not read the concept: ${error.message}`)
+    fs.writeFileSync(concept, Buffer.from(await data.arrayBuffer()))
+
+    // Meshy runs for minutes; give it room, but not forever.
+    const m = await run('node', [
+      path.join(REPO, 'scripts/tiles/meshy.mjs'), concept, raw,
+      `--polycount=${Math.round(Number(job.polycount) || 10000)}`,
+    ], { cwd: REPO, maxBuffer: 16 * 1024 * 1024, timeout: 30 * 60_000 })
+    stdout += m.stdout + m.stderr
+
+    const args = [
+      '--max-old-space-size=8192',
+      path.join(REPO, 'scripts/tiles/normalize-tile.mjs'), raw, norm,
+      `--surface=${Number(job.surface)}`,
+      `--budget=${Math.round(Number(job.budget) || 8000)}`,
+    ]
+    if (job.rebuild_base) args.push('--rebuild-base')
+    const n = await run('node', args, { cwd: REPO, maxBuffer: 32 * 1024 * 1024, timeout: 40 * 60_000 })
+    stdout += '\n' + n.stdout + n.stderr
+
+    const flat = [path.join(REPO, 'scripts/tiles/kenney-flatten.mjs'), norm, out]
+    if (job.skirt != null) flat.push(`--skirt=${Number(job.skirt)}`)
+    const f = await run('node', flat, { cwd: REPO, maxBuffer: 32 * 1024 * 1024, timeout: 20 * 60_000 })
+    stdout += '\n' + f.stdout + f.stderr
+
+    const png = out.replace(/\.glb$/i, '.png')
+    await run('python3', [path.join(REPO, 'scripts/tiles/render_glb.py'), out, png],
+              { cwd: REPO, timeout: 20 * 60_000 })
+
+    const key = `${job.id}.png`
+    const up = await db.storage.from('tile-previews')
+      .upload(key, fs.readFileSync(png), { contentType: 'image/png', upsert: true })
+    if (up.error) throw new Error(`preview upload failed: ${up.error.message}`)
+    const { data: pub } = db.storage.from('tile-previews').getPublicUrl(key)
+
+    // Keep the built tile for the accept step rather than rebuilding it.
+    fs.copyFileSync(out, path.join(os.tmpdir(), `tilejob-${job.id}.glb`))
+    fs.copyFileSync(png, path.join(os.tmpdir(), `tilejob-${job.id}.png`))
+
+    const last = (re) => { const hits = [...stdout.matchAll(re)]; return hits.length ? hits[hits.length - 1][1] : undefined }
+    const R = last(/R=([\d.]+)/g)
+    const plate = last(/plateTop=([\d.]+)/g)
+    const tris = /triangles=[\d,]+ -> ([\d,]+)/.exec(stdout)?.[1]?.replace(/,/g, '')
+    // Worth surfacing: below 0.82 the generated hex will not tile cleanly.
+    const reg = /base regularity: ([\d.]+)/.exec(stdout)?.[1]
+
+    await setStatus(job.id, {
+      status: 'preview_ready',
+      preview_url: `${pub.publicUrl}?t=${Date.now()}`,
+      log: (reg ? `base regularity ${reg} (0.866 = perfect hexagon)\n──────────\n` : '')
+         + stdout.trim().split('\n').slice(-14).join('\n'),
+      measured_r: R ? Number(R) : null,
+      measured_plate_top: plate ? Number(plate) : null,
+      triangles: tris ? Number(tris) : null,
+      bytes: fs.statSync(out).size,
+    })
+    log(`  forge preview ready — R=${R} plateTop=${plate} tris=${tris} regularity=${reg}`)
+  } catch (e) {
+    const detail = `${e.stdout || ''}${e.stderr || ''}`.trim() || e.message
+    log(`  FAILED: ${e.message}`)
+    await setStatus(job.id, {
+      status: 'failed',
+      log: `${stdout}\n──────────\n${detail}`.trim().split('\n').slice(-16).join('\n'),
+    })
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true })
+  }
+}
+
 /** Normalize a queued job and publish a preview for review. */
 async function normalize(job) {
   if (!NAME_RE.test(job.output_name)) {
@@ -227,10 +337,15 @@ async function adjust(job) {
     if (!fs.existsSync(pristine)) fs.copyFileSync(cached, pristine)
     fs.copyFileSync(pristine, cached)
 
-    const matArgs = [path.join(REPO, 'scripts/tiles/fix-materials.mjs'), cached]
-    if (/^#[0-9a-fA-F]{6}$/.test(job.base_top_color || '')) matArgs.push(`--base-top=${job.base_top_color}`)
-    if (/^#[0-9a-fA-F]{6}$/.test(job.base_side_color || '')) matArgs.push(`--base-side=${job.base_side_color}`)
-    await run('node', matArgs, { cwd: REPO })
+    // A forged tile has already been through kenney-flatten, which settled every
+    // material onto the Kenney colormap. fix-materials would repaint over that and
+    // undo the palette, so it only runs for the older kinds.
+    if (job.kind !== 'forge') {
+      const matArgs = [path.join(REPO, 'scripts/tiles/fix-materials.mjs'), cached]
+      if (/^#[0-9a-fA-F]{6}$/.test(job.base_top_color || '')) matArgs.push(`--base-top=${job.base_top_color}`)
+      if (/^#[0-9a-fA-F]{6}$/.test(job.base_side_color || '')) matArgs.push(`--base-side=${job.base_side_color}`)
+      await run('node', matArgs, { cwd: REPO })
+    }
 
     // Composed tiles have no hexBase mesh, so adjust-tile has nothing to anchor
     // against; re-compose instead by editing the job's shift and re-queueing.
@@ -295,7 +410,7 @@ async function install(job) {
       return
     }
 
-    await run('git', ['commit', '-m', `feat(tile): ${job.output_name} via admin normalizer`], { cwd: REPO })
+    await run('git', ['commit', '-m', `feat(tile): ${job.output_name} via admin ${job.kind === 'forge' ? 'forge' : 'normalizer'}`], { cwd: REPO })
     await run('git', ['push', 'origin', 'main'], { cwd: REPO, timeout: 10 * 60_000 })
 
     await setStatus(job.id, { status: 'installed' })
@@ -313,7 +428,10 @@ async function tick() {
   if (error) { log('poll error:', error.message); return }
   const job = data?.[0]
   if (!job) return
-  if (job.status === 'queued') await (job.kind === 'compose' ? compose(job) : normalize(job))
+  if (job.status === 'queued') {
+    const build = { compose, forge }[job.kind] ?? normalize
+    await build(job)
+  }
   else if (job.status === 'adjust') await adjust(job)
   else await install(job)
 }
