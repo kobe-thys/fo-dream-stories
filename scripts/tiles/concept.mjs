@@ -20,11 +20,34 @@
  *    compact object on a plain background at a 3/4 elevated angle. Scenery,
  *    ground plane, vignette or cropping all become geometry we then have to strip.
  *
+ * 1b. DO NOT ask for isometric or orthographic projection, however much a game tile
+ *    seems to call for it. Measured 2026-09-01, base regularity of the reconstructed
+ *    hex (0.866 is a perfect hexagon):
+ *
+ *      original rendered artwork, perspective + soft shading   0.804
+ *      concept, perspective + flat vector shading              0.558
+ *      concept, TRUE ISOMETRIC + flat vector shading           0.326   <- worse
+ *
+ *    Parallel projection removes the depth cues Meshy infers geometry from, so the
+ *    base comes back worse, not better. Flat vector shading removes the rest of them.
+ *    The best input measured is the one that looks like a RENDERED 3D OBJECT: gentle
+ *    perspective, soft shading, visible form.
+ *
+ *    This is why STYLE below asks for smooth shading rather than flat colour, even
+ *    though the finished tile must be flat: `kenney-flatten` enforces the flat Kenney
+ *    palette downstream regardless, so spending the concept's fidelity on shading
+ *    costs nothing and buys a base that survives.
+ *
+ *    It matters because a deformed base has to be thrown away and replaced by
+ *    `normalize-tile --rebuild-base`, which is destructive whenever the base itself
+ *    carries artwork -- it flattened the pegasus's cloud mound.
+ *
  * 2. Colour is cheaper to get right here than downstream. `kenney-flatten` can
  *    enforce the palette by snapping, but snapping is nearest-neighbour: it can
  *    fix noise and off-palette shades, never a wrong HUE. A blue tree stays a
- *    blue tree. So the palette is named in hex up front and the model is told to
- *    use ONLY those colours -- getting green canopies here saves a --remap later.
+ *    blue tree. So the palette is named in hex up front -- getting green canopies
+ *    here saves a --remap later. It is named as a target to stay close to, not as a
+ *    hard lock: forbidding intermediate shades also forbids the shading in 1b.
  */
 import fs from 'fs'
 
@@ -43,19 +66,39 @@ const STYLE = `
 STYLE -- these are hard requirements, not suggestions:
 - Low-poly 3D game asset in the Kenney.nl style: flat-shaded faceted polygons,
   clean hard edges, chunky simplified forms, friendly and toylike.
-- FLAT COLOUR ONLY. No gradients, no texture detail, no noise, no grain, no
-  painterly brushwork, no photographic material. Each facet is one solid colour.
-- Lighting is a single soft key from the upper left. Shading is achieved ONLY by
-  using a darker shade of the same colour family on unlit facets.
-- NO cast shadows on the ground. NO ambient occlusion. NO outlines.
+- Rendered as a clean 3D object, not a flat vector illustration: smooth soft
+  shading, gentle gradients, clear light and shadow on every form.
+- No texture detail, no noise, no grain, no painterly brushwork, no photographic
+  material. Surfaces stay clean and simple.
+- Lighting is a single soft key from the upper left, with enough falloff that the
+  form of every shape is unmistakable.
+- NO cast shadow on the ground beneath the tile. NO outlines.
 
-PALETTE -- use ONLY these colours and darker/lighter shades of them:
+PALETTE -- keep close to these hues; darker and lighter shades of them are fine:
 ${PALETTE.map(([n, h]) => `  ${h}  ${n}`).join('\n')}
 
+THE BASE -- this is what most often goes wrong:
+- The camera looks DOWN on the tile from roughly 35 degrees above horizontal. The
+  hexagonal TOP FACE must be clearly visible and clearly read as a regular hexagon.
+  Do not drop to a side-on or eye-level view -- the top face must not be a sliver.
+- Render it like a real 3D object with a gentle, natural camera. Soft smooth shading
+  and subtle gradients ON THE SLAB are wanted here: they are the depth cues the
+  reconstruction needs.
+- ALL SIX SIDES of the hexagon must be visible and unobstructed. The subject must not
+  hang over, cover or touch the rim. Leave a clear margin of empty slab all the way
+  round, so the full hexagonal outline reads.
+- The slab is a plain, undecorated hexagonal prism with a flat top and a vertical
+  skirt of constant height. No bevels, no steps, no rounded corners, no rim moulding.
+
 COMPOSITION -- required:
-- ONE hexagonal game tile, seen from an elevated 3/4 angle, centred in frame.
+- ONE hexagonal game tile, centred in frame, like a single board-game piece
+  photographed on a plain white sweep with nothing else in shot.
+- NOTHING BEHIND THE SUBJECT. No backdrop, no panel, no card, no sky, no night sky,
+  no wall, no circle or hexagon behind the tile, no framing shape of any kind. Stars
+  or sparkles, if any, float as small separate shapes against the white page.
 - The tile is a flat-topped hexagonal slab with a plain ${PALETTE[4][1]} clay-orange
-  vertical skirt. The subject sits ON TOP of the slab and stays within its footprint.
+  vertical skirt. The skirt is the same height all the way round. The subject sits
+  ON TOP of the slab and stays within its footprint.
 - The subject reads clearly as a single silhouette. Chunky shapes, not fine detail.
 - Background is PURE WHITE and completely empty. No ground, no horizon, no scenery,
   no border, no text, no watermark, no drop shadow under the tile.`
