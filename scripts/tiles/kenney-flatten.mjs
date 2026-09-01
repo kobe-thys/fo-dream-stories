@@ -3,6 +3,8 @@
  *
  *   node scripts/tiles/kenney-flatten.mjs <input.glb> <output.glb> [options]
  *
+ *   --skirt=Y       force every face below Y onto Kenney dirt #f1976c (the tile
+ *                   contract; --rebuild-base picks its prism colour from the art)
  *   --report        print the swatch histogram (with height bands) and write nothing
  *   --keep-below=Y  exempt faces below height Y from --remap (protects a finished
  *                   base). They are still snapped -- an already-correct base lands
@@ -39,8 +41,8 @@
  * So this script snaps per FACE, not per texel: average the texture over each
  * triangle, pick the nearest of the 90 rungs in OKLab (perceptual -- plain RGB
  * distance is what let hue drift in the first place), then repoint all three of
- * that triangle's UVs at that rung's cell centre and retarget the primitive to one
- * shared material on the genuine colormap.
+ * that triangle's UVs at that rung's cell centre and retarget the primitive to a
+ * material on the genuine colormap, keeping its original material NAME.
  *
  * Snapping across RUNGS rather than the 18 flat bases is deliberate: collapsing a
  * family to its base colour would throw away the light-to-dark variation that makes
@@ -75,6 +77,14 @@ if (!SRC || (!DST && !has('report'))) {
 }
 
 const keepBelow = flag('keep-below') !== undefined ? Number(flag('keep-below')) : null
+
+// --skirt=Y forces every face below Y onto Kenney dirt, keeping its rung so the
+// prism still shades. Every stock Kenney tile has an #f1976c skirt, and
+// normalize-tile --rebuild-base picks the prism colour from whatever the artwork
+// happens to contain -- which gave the mother tree a teal skirt and raindrop-castle
+// a tan one. The skirt is part of the tile contract, not an art choice.
+const KENNEY_DIRT = '#f1976c'
+const skirt = flag('skirt') !== undefined ? Number(flag('skirt')) : null
 
 // --remap=#from:#to@minY:maxY  (band optional; maxY optional)
 const REMAPS = args.filter(a => a.startsWith('--remap=')).map(a => {
@@ -213,15 +223,27 @@ for (const rm of REMAPS) {
   if (!byFamily.has(rm.to)) { console.error(`--remap target ${rm.to} is not a Kenney family base`); process.exit(1) }
 }
 
-// One shared material for the whole tile, textured with the genuine colormap.
+// Every primitive ends up on the genuine colormap, but each keeps a material
+// NAMED after the one it had. Collapsing the tile onto a single material would
+// erase `hexBase` and `hexBaseTop`, and the rest of the pipeline reads the plate
+// top from those names -- inferring it from ring density is documented to fail on
+// dense tiles (enid-kingdom reads 0.740 against a true 0.200).
 const colormapTex = doc.createTexture('colormap')
   .setImage(new Uint8Array(fs.readFileSync(COLORMAP)))
   .setMimeType('image/png')
-const kenneyMat = doc.createMaterial('kenney')
-  .setBaseColorTexture(colormapTex)
-  .setBaseColorFactor([1, 1, 1, 1])
-  .setMetallicFactor(0)          // absent metallicFactor defaults to 1.0 -> mirrors
-  .setRoughnessFactor(1)
+
+const materials = new Map()
+const kenneyMaterial = name => {
+  const key = name || 'kenney'
+  if (!materials.has(key)) {
+    materials.set(key, doc.createMaterial(key)
+      .setBaseColorTexture(colormapTex)
+      .setBaseColorFactor([1, 1, 1, 1])
+      .setMetallicFactor(0)        // absent metallicFactor defaults to 1.0 -> mirrors
+      .setRoughnessFactor(1))
+  }
+  return materials.get(key)
+}
 
 // Cache decoded textures: several primitives usually share one image.
 const decoded = new Map()
@@ -300,6 +322,11 @@ for (const mesh of root.listMeshes()) {
         }
       }
 
+      if (skirt !== null && meanY < skirt) {
+        const t = byFamily.get(KENNEY_DIRT).rungs
+        best = t[Math.min(best.rung, t.length - 1)]
+      }
+
       const h = histogram.get(best.hex) ?? { n: 0, lo: Infinity, hi: -Infinity, family: best.family, rung: best.rung }
       h.n++; h.lo = Math.min(h.lo, meanY); h.hi = Math.max(h.hi, meanY)
       histogram.set(best.hex, h)
@@ -329,7 +356,7 @@ for (const mesh of root.listMeshes()) {
     for (const name of ['TEXCOORD_1', 'COLOR_0', 'TANGENT']) {
       if (prim.getAttribute(name)) prim.setAttribute(name, null)
     }
-    prim.setMaterial(kenneyMat)
+    prim.setMaterial(kenneyMaterial(mat?.getName()))
   }
 }
 
@@ -354,6 +381,9 @@ if (has('report')) process.exit(0)
 // three corners now share one colormap texel), so re-indexing recovers most of the
 // size that unindexing cost. Faces of different colours have different uvs and so
 // are never merged -- the flat look is preserved exactly.
-await doc.transform(weld(), prune(), dedup())
+// keepUniqueNames is load-bearing: after flattening, hexBase and hexBaseTop differ
+// from the artwork material ONLY by name, so a default dedup merges all three and
+// silently undoes the name preservation above.
+await doc.transform(weld(), prune(), dedup({ keepUniqueNames: true }))
 await io.write(DST, doc)
 console.log(`wrote ${DST}  ${(fs.statSync(DST).size / 1024).toFixed(0)}KB`)

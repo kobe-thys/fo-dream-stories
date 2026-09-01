@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-09-01T15:32:17.935Z",
+  "generatedAt": "2026-09-01T16:22:54.407Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
       "label": "0   mother tree2",
       "thumb": "/models/0%20-%20mother%20tree2.png",
-      "bytes": 4829500,
-      "hash": "9d32b9c0"
+      "bytes": 4829644,
+      "hash": "ea465ab9"
     },
     {
       "file": "bridge.glb",
@@ -159,36 +159,36 @@
       "file": "dragon-mountain-sea.glb",
       "label": "dragon mountain sea",
       "thumb": "/models/dragon-mountain-sea.png",
-      "bytes": 195116,
-      "hash": "82940654"
+      "bytes": 195308,
+      "hash": "0bedb9f4"
     },
     {
       "file": "dragon-mountain.glb",
       "label": "dragon mountain",
       "thumb": "/models/dragon-mountain.png",
-      "bytes": 275524,
-      "hash": "1bd8ea4b"
+      "bytes": 275716,
+      "hash": "feca9c51"
     },
     {
       "file": "elven-forest-2.glb",
       "label": "elven forest 2",
       "thumb": "/models/elven-forest-2.png",
-      "bytes": 197484,
-      "hash": "72614e6a"
+      "bytes": 197672,
+      "hash": "a164b24e"
     },
     {
       "file": "elven-forest-3.glb",
       "label": "elven forest 3",
       "thumb": "/models/elven-forest-3.png",
-      "bytes": 231084,
-      "hash": "5a04e559"
+      "bytes": 231272,
+      "hash": "9da1acc3"
     },
     {
       "file": "enid-kingdom.glb",
       "label": "enid kingdom",
       "thumb": "/models/enid-kingdom.png",
-      "bytes": 3761828,
-      "hash": "a58bebeb"
+      "bytes": 4295912,
+      "hash": "e01c3a53"
     },
     {
       "file": "grass-forest.glb",
@@ -502,15 +502,15 @@
       "file": "griffon-shell.glb",
       "label": "griffon shell",
       "thumb": "/models/griffon-shell.png",
-      "bytes": 3135188,
-      "hash": "97471ca8"
+      "bytes": 3135380,
+      "hash": "acf06018"
     },
     {
       "file": "once-in-a-lifetime-portal.glb",
       "label": "once in a lifetime portal",
       "thumb": "/models/once-in-a-lifetime-portal.png",
-      "bytes": 198108,
-      "hash": "28b59952"
+      "bytes": 198300,
+      "hash": "f41eeaec"
     },
     {
       "file": "path-corner-sharp.glb",
@@ -628,15 +628,15 @@
       "file": "pegasus.glb",
       "label": "pegasus",
       "thumb": "/models/pegasus.png",
-      "bytes": 4646844,
-      "hash": "0eb90a8a"
+      "bytes": 4647032,
+      "hash": "a9c641e4"
     },
     {
       "file": "raindrop-castle.glb",
       "label": "raindrop castle",
       "thumb": "/models/raindrop-castle.png",
-      "bytes": 1801460,
-      "hash": "135daa95"
+      "bytes": 1801648,
+      "hash": "e23fa940"
     },
     {
       "file": "river-corner-sharp.glb",
@@ -789,15 +789,15 @@
       "file": "sun-cave.glb",
       "label": "sun cave",
       "thumb": "/models/sun-cave.png",
-      "bytes": 184908,
-      "hash": "368644aa"
+      "bytes": 185100,
+      "hash": "f896cbf3"
     },
     {
       "file": "sunken-elven-ship.glb",
       "label": "sunken elven ship",
       "thumb": "/models/sunken-elven-ship.png",
-      "bytes": 223100,
-      "hash": "51889706"
+      "bytes": 223292,
+      "hash": "4540d56c"
     },
     {
       "file": "syrup-tree.glb",
@@ -810,15 +810,15 @@
       "file": "tinkle-trunk-notes.glb",
       "label": "tinkle trunk notes",
       "thumb": "/models/tinkle-trunk-notes.png",
-      "bytes": 190376,
-      "hash": "8309a2ac"
+      "bytes": 190664,
+      "hash": "a857e0b9"
     },
     {
       "file": "tinkle-trunk.glb",
       "label": "tinkle trunk",
       "thumb": "/models/tinkle-trunk.png",
-      "bytes": 156112,
-      "hash": "43aeaa15"
+      "bytes": 156304,
+      "hash": "9fa85351"
     },
     {
       "file": "unit-house.glb",
@@ -880,8 +880,8 @@
       "file": "upside-down waterfall.glb",
       "label": "upside down waterfall",
       "thumb": "/models/upside-down%20waterfall.png",
-      "bytes": 192628,
-      "hash": "b7586793"
+      "bytes": 192776,
+      "hash": "5ba456bc"
     },
     {
       "file": "water-island.glb",
