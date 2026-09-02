@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-09-01T16:22:54.407Z",
+  "generatedAt": "2026-09-02T02:03:43.216Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
       "label": "0   mother tree2",
       "thumb": "/models/0%20-%20mother%20tree2.png",
-      "bytes": 4829644,
-      "hash": "ea465ab9"
+      "bytes": 387884,
+      "hash": "205e4b54"
     },
     {
       "file": "bridge.glb",
@@ -502,8 +502,8 @@
       "file": "griffon-shell.glb",
       "label": "griffon shell",
       "thumb": "/models/griffon-shell.png",
-      "bytes": 3135380,
-      "hash": "acf06018"
+      "bytes": 361324,
+      "hash": "8c645422"
     },
     {
       "file": "once-in-a-lifetime-portal.glb",
@@ -628,15 +628,15 @@
       "file": "pegasus.glb",
       "label": "pegasus",
       "thumb": "/models/pegasus.png",
-      "bytes": 4647032,
-      "hash": "a9c641e4"
+      "bytes": 222072,
+      "hash": "cf16ab78"
     },
     {
       "file": "raindrop-castle.glb",
       "label": "raindrop castle",
       "thumb": "/models/raindrop-castle.png",
-      "bytes": 1801648,
-      "hash": "e23fa940"
+      "bytes": 288056,
+      "hash": "26d9f42c"
     },
     {
       "file": "river-corner-sharp.glb",
