@@ -5,6 +5,8 @@
  *
  *   --skirt=Y       force every face below Y onto Kenney dirt #f1976c (the tile
  *                   contract; --rebuild-base picks its prism colour from the art)
+ *   --ground=Y:#hex paint the top SURFACE at height Y -- the flat plate the artwork
+ *                   stands on. Horizontal faces only, selected by geometry.
  *   --report        print the swatch histogram (with height bands) and write nothing
  *   --keep-below=Y  exempt faces below height Y from --remap (protects a finished
  *                   base). They are still snapped -- an already-correct base lands
@@ -85,6 +87,28 @@ const keepBelow = flag('keep-below') !== undefined ? Number(flag('keep-below')) 
 // a tan one. The skirt is part of the tile contract, not an art choice.
 const KENNEY_DIRT = '#f1976c'
 const skirt = flag('skirt') !== undefined ? Number(flag('skirt')) : null
+
+// --ground=Y:#hex paints the tile's TOP SURFACE -- the flat plate at height Y that
+// the artwork stands on. --skirt only covers the vertical sides, so without this the
+// ground keeps whatever colour the generator happened to give it: the rebuilt
+// griffon-shell came back with a grey island and the mother tree with a dirt lawn,
+// and neither could be corrected afterwards. fix-materials cannot do it either --
+// on a flattened tile it would repaint over the whole settled palette.
+//
+// Selected by GEOMETRY, not by colour: horizontal faces at the plate height. The same
+// colour is reused all over a tile's atlas, so a colour-based rule repaints unrelated
+// parts -- the lesson recolour-tile.py already had to learn.
+// The requested colour need NOT be one of the 18 family bases -- it is snapped to
+// the nearest one below. That matters: the surface colours measured off the kit are
+// not all family bases (grass reads #48c1a3, whose family is #52d3b3), so demanding
+// an exact match crashed on the most obvious input anyone would give it.
+const groundFlag = flag('ground')
+let ground = null
+if (groundFlag !== undefined) {
+  const m = String(groundFlag).match(/^([-\d.]+):(#[0-9a-fA-F]{6})$/)
+  if (!m) { console.error('bad --ground, want Y:#rrggbb'); process.exit(1) }
+  ground = { y: Number(m[1]), hex: m[2].toLowerCase() }
+}
 
 // --remap=#from:#to@minY:maxY  (band optional; maxY optional)
 const REMAPS = args.filter(a => a.startsWith('--remap=')).map(a => {
@@ -223,6 +247,20 @@ for (const rm of REMAPS) {
   if (!byFamily.has(rm.to)) { console.error(`--remap target ${rm.to} is not a Kenney family base`); process.exit(1) }
 }
 
+if (ground && !byFamily.has(ground.hex)) {
+  const want = oklab(
+    parseInt(ground.hex.slice(1, 3), 16),
+    parseInt(ground.hex.slice(3, 5), 16),
+    parseInt(ground.hex.slice(5, 7), 16))
+  let best = families[0], bestD = Infinity
+  for (const f of families) {
+    const d = dist(want, f.rungs[0].lab)
+    if (d < bestD) { bestD = d; best = f }
+  }
+  console.log(`  ground ${ground.hex} is not a Kenney family — using ${best.name}`)
+  ground.hex = best.name
+}
+
 // Every primitive ends up on the genuine colormap, but each keeps a material
 // NAMED after the one it had. Collapsing the tile onto a single material would
 // erase `hexBase` and `hexBaseTop`, and the rest of the pipeline reads the plate
@@ -261,8 +299,12 @@ async function texelsFor(mat) {
   return out
 }
 
+// How far above/below the stated plate height a face still counts as ground. Wide
+// enough for the small step Kenney surfaces have, tight enough to miss the artwork.
+const GROUND_BAND = 0.03
+
 const histogram = new Map()
-let faces = 0, skipped = 0, kept = 0
+let faces = 0, skipped = 0, kept = 0, groundFaces = 0
 
 for (const mesh of root.listMeshes()) {
   for (const prim of mesh.listPrimitives()) {
@@ -327,6 +369,21 @@ for (const mesh of root.listMeshes()) {
         best = t[Math.min(best.rung, t.length - 1)]
       }
 
+      // The ground: horizontal faces sitting at the plate top. Take the face normal
+      // from the geometry rather than the NORMAL attribute, which a generated mesh
+      // may smooth across the rim or omit entirely.
+      if (ground && Math.abs(meanY - ground.y) <= GROUND_BAND) {
+        const ux = pb[0] - pa[0], uy = pb[1] - pa[1], uz = pb[2] - pa[2]
+        const vx = pc[0] - pa[0], vy = pc[1] - pa[1], vz = pc[2] - pa[2]
+        const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx
+        const len = Math.hypot(nx, ny, nz)
+        if (len > 0 && Math.abs(ny / len) > 0.85) {
+          const t = byFamily.get(ground.hex).rungs
+          best = t[Math.min(best.rung, t.length - 1)]
+          groundFaces++
+        }
+      }
+
       const h = histogram.get(best.hex) ?? { n: 0, lo: Infinity, hi: -Infinity, family: best.family, rung: best.rung }
       h.n++; h.lo = Math.min(h.lo, meanY); h.hi = Math.max(h.hi, meanY)
       histogram.set(best.hex, h)
@@ -361,7 +418,8 @@ for (const mesh of root.listMeshes()) {
 }
 
 const top = [...histogram.entries()].sort((a, b) => b[1].n - a[1].n)
-console.log(`faces: ${faces}${kept ? `  (${kept} exempt from --remap)` : ''}`)
+console.log(`faces: ${faces}${kept ? `  (${kept} exempt from --remap)` : ''}`
+  + (ground ? `  ground: ${groundFaces} faces -> ${ground.hex}` : ''))
 console.log('  shade     family   rung   faces    share   height band')
 for (const [hex, h] of top) {
   console.log(`  ${hex}  ${h.family}   ${h.rung}   ${String(h.n).padStart(6)}  `

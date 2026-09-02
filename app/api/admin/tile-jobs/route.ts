@@ -206,6 +206,24 @@ export async function PATCH(req: NextRequest) {
     if (body.base_side_color !== undefined) {
       patch.base_side_color = HEX_RE.test(body.base_side_color ?? '') ? body.base_side_color : null
     }
+    // Re-finishing a forged tile rebuilds it from the cached Meshy mesh, so the
+    // surface height and skirt can change too — they are decided during normalize
+    // and flatten and cannot be nudged on a finished tile. No Meshy call, so this
+    // is free.
+    if (body.surface !== undefined && body.surface !== '') {
+      const sf = rng(body.surface, 0.01, 2, 0)
+      if (sf === null) return NextResponse.json({ error: 'surface must be 0.01–2' }, { status: 400 })
+      patch.surface = sf
+    }
+    if (body.skirt !== undefined) {
+      if (body.skirt === '' || body.skirt === null) {
+        patch.skirt = null
+      } else {
+        const sk = rng(body.skirt, 0, 2, 0)
+        if (sk === null) return NextResponse.json({ error: 'skirt must be 0–2' }, { status: 400 })
+        patch.skirt = sk
+      }
+    }
   }
 
   // Re-run: for a normalize this re-does the whole build with new rotation or

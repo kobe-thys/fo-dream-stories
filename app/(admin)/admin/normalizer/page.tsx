@@ -71,6 +71,20 @@ const BASE_COLOURS = [
 // the same world as the stock ones.
 const KENNEY_DIRT = '#f1976c'
 
+// Ground colours for the forge, which paints via kenney-flatten and can therefore
+// only use REAL Kenney family bases. BASE_COLOURS above is for fix-materials, which
+// takes any hex — several of its entries (grass #48c1a3, sand, stone) are measured
+// surface colours that are not family bases and would be silently snapped.
+const GROUND_COLOURS = [
+  { label: 'Grass',  hex: '#52d3b3' },
+  { label: 'Leaf',   hex: '#61cb8b' },
+  { label: 'Dirt',   hex: '#f1976c' },
+  { label: 'Sand',   hex: '#f2bf99' },
+  { label: 'Water',  hex: '#8fdbff' },
+  { label: 'Stone',  hex: '#a0a8c9' },
+  { label: 'Snow',   hex: '#ffffff' },
+]
+
 // Measured off the Kenney kit — see the tile geometry contract in CLAUDE.md.
 const SURFACES = [
   { label: 'Grass / sand / stone', value: 0.2, hint: 'land tiles — two layers' },
@@ -106,6 +120,7 @@ export default function NormalizerPage() {
   const [fSurface, setFSurface] = useState(0.2)
   const [fPoly, setFPoly] = useState(10000)
   const [fSkirt, setFSkirt] = useState(true)
+  const [fGround, setFGround] = useState('')   // '' = leave whatever the art gave it
   const [fRebuild, setFRebuild] = useState(true)
   const [drawing, setDrawing] = useState(false)
   const [modelFiles, setModelFiles] = useState<string[]>([])
@@ -224,6 +239,7 @@ export default function NormalizerPage() {
           // The skirt sits just under the surface: a top face reading a hair below
           // the surface height would otherwise be repainted as dirt.
           skirt: fSkirt ? Number((fSurface - 0.01).toFixed(3)) : undefined,
+          base_top_color: fGround || undefined,
           rebuild_base: fRebuild,
         }),
       })
@@ -233,6 +249,19 @@ export default function NormalizerPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally { setBusy(false) }
+  }
+
+  /**
+   * Rebuild a forged tile from the mesh Meshy already returned, with a new surface
+   * height, skirt or ground colour. Meshy is not called again, so this is free —
+   * only the finishing half of the pipeline re-runs.
+   */
+  async function refinish(job: Job, patch: { surface: number; skirt: number | null; base_top_color: string | null }) {
+    await fetch('/api/admin/tile-jobs', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: job.id, status: 'adjust', ...patch }),
+    })
+    load()
   }
 
   async function submitCompose() {
@@ -425,6 +454,12 @@ export default function NormalizerPage() {
                     <input type="checkbox" checked={fSkirt} onChange={e => setFSkirt(e.target.checked)} />
                     Force a Kenney dirt skirt
                   </label>
+                  <label className="text-[11px] text-gray-400">Ground
+                    <select value={fGround} onChange={e => setFGround(e.target.value)}
+                      className="block mt-0.5 w-28 bg-gray-950 border border-gray-700 rounded px-2 py-1 text-xs text-gray-100">
+                      <option value="">leave as drawn</option>
+                      {GROUND_COLOURS.map(c => <option key={c.hex} value={c.hex}>{c.label}</option>)}
+                    </select></label>
                   <button onClick={approveConcept} disabled={!fName || busy}
                     className="px-4 py-2 bg-purple-700 text-white rounded-lg text-sm hover:bg-purple-600 disabled:opacity-40">
                     {busy ? 'Queueing…' : 'Approve & build the tile'}
@@ -646,7 +681,11 @@ export default function NormalizerPage() {
                 </pre>
               )}
               {j.status === 'preview_ready' && (
-                j.kind === 'compose' ? (
+                j.kind === 'forge' ? (
+                  <RefinishPanel
+                    key={`${j.id}:${j.surface}:${j.skirt}:${j.base_top_color}`}
+                    job={j} onRefinish={refinish} onDecide={decide} />
+                ) : j.kind === 'compose' ? (
                   <ComposePanel job={j} onRecompose={recompose} onDecide={decide} />
                 ) : <AdjustPanel
                   // Remount when the APPLIED values change, so the fields resync
@@ -680,6 +719,67 @@ export default function NormalizerPage() {
  * fixed at (2.6, 2.2, 3.4) looking at the origin, which puts +X toward the
  * lower-right of the image and +Z toward the lower-left.
  */
+/**
+ * Re-finish a forged tile. The expensive half — Meshy — is already paid for and the
+ * mesh is cached, so surface height, skirt and ground colour can be changed and
+ * re-previewed as often as you like for nothing.
+ */
+function RefinishPanel({
+  job, onRefinish, onDecide,
+}: {
+  job: Job
+  onRefinish: (j: Job, p: { surface: number; skirt: number | null; base_top_color: string | null }) => void
+  onDecide: (id: string, s: 'accepted' | 'failed') => void
+}) {
+  const [surface, setSurface] = useState(job.surface ?? 0.2)
+  const [skirtOn, setSkirtOn] = useState(job.skirt != null)
+  const [ground, setGround] = useState(job.base_top_color ?? '')
+
+  return (
+    <div className="mt-3 border-t border-gray-800 pt-3 space-y-3">
+      <div className="flex items-end gap-4 flex-wrap">
+        <label className="text-[11px] text-gray-400">Sits on
+          <select value={surface} onChange={e => setSurface(Number(e.target.value))}
+            className="block mt-0.5 w-44 bg-gray-950 border border-gray-700 rounded px-2 py-1 text-xs text-gray-100">
+            {SURFACES.map(o => <option key={o.value} value={o.value}>{o.label} — {o.value}</option>)}
+          </select></label>
+        <label className="text-[11px] text-gray-400">Ground
+          <select value={ground} onChange={e => setGround(e.target.value)}
+            className="block mt-0.5 w-28 bg-gray-950 border border-gray-700 rounded px-2 py-1 text-xs text-gray-100">
+            <option value="">leave as drawn</option>
+            {GROUND_COLOURS.map(c => <option key={c.hex} value={c.hex}>{c.label}</option>)}
+          </select></label>
+        <label className="flex items-center gap-2 text-[11px] text-gray-400">
+          <input type="checkbox" checked={skirtOn} onChange={e => setSkirtOn(e.target.checked)} />
+          Kenney dirt skirt
+        </label>
+        <button
+          onClick={() => onRefinish(job, {
+            surface,
+            skirt: skirtOn ? Number((surface - 0.01).toFixed(3)) : null,
+            base_top_color: ground || null,
+          })}
+          className="px-3 py-1.5 bg-gray-800 border border-gray-700 text-gray-200 rounded-lg text-xs hover:bg-gray-700">
+          Re-finish &amp; preview
+        </button>
+        <button onClick={() => onDecide(job.id, 'accepted')}
+          className="px-4 py-1.5 bg-green-700 text-white rounded-lg text-xs hover:bg-green-600">
+          Accept &amp; install
+        </button>
+        <button onClick={() => onDecide(job.id, 'failed')}
+          className="px-3 py-1.5 text-gray-500 rounded-lg text-xs hover:text-gray-300">
+          Discard
+        </button>
+      </div>
+      <p className="text-[11px] text-gray-600">
+        Re-finishing rebuilds from the mesh already generated — it costs no Meshy
+        credits and takes about a minute. The ground is the flat top the artwork
+        stands on; the skirt is the side wall.
+      </p>
+    </div>
+  )
+}
+
 function AdjustPanel({
   job, onApply, onDecide,
 }: {

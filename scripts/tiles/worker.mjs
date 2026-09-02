@@ -158,6 +158,10 @@ async function forge(job) {
     ], { cwd: REPO, maxBuffer: 16 * 1024 * 1024, timeout: 30 * 60_000 })
     stdout += m.stdout + m.stderr
 
+    // Keep the generated mesh: re-finishing with a different surface or ground
+    // colour rebuilds from here, so Meshy is paid for exactly once per tile.
+    fs.copyFileSync(raw, path.join(os.tmpdir(), `tilejob-${job.id}.raw.glb`))
+
     const args = [
       '--max-old-space-size=8192',
       path.join(REPO, 'scripts/tiles/normalize-tile.mjs'), raw, norm,
@@ -170,6 +174,9 @@ async function forge(job) {
 
     const flat = [path.join(REPO, 'scripts/tiles/kenney-flatten.mjs'), norm, out]
     if (job.skirt != null) flat.push(`--skirt=${Number(job.skirt)}`)
+    if (/^#[0-9a-fA-F]{6}$/.test(job.base_top_color || '')) {
+      flat.push(`--ground=${Number(job.surface)}:${job.base_top_color}`)
+    }
     const f = await run('node', flat, { cwd: REPO, maxBuffer: 32 * 1024 * 1024, timeout: 20 * 60_000 })
     stdout += '\n' + f.stdout + f.stderr
 
@@ -330,6 +337,13 @@ async function adjust(job) {
   log(`adjusting ${job.output_name}`)
   const cached = path.join(os.tmpdir(), `tilejob-${job.id}.glb`)
   const pristine = path.join(os.tmpdir(), `tilejob-${job.id}.orig.glb`)
+
+  // A forged tile re-finishes from the RAW Meshy mesh rather than nudging the built
+  // one: surface height and ground colour are decided during normalize and flatten,
+  // so they cannot be applied afterwards. Meshy is not called again, so re-finishing
+  // is free — the expensive half is already paid for.
+  if (job.kind === 'forge') return refinish(job)
+
   try {
     if (!fs.existsSync(cached)) throw new Error('built tile missing — re-run the job')
     // Keep an untouched copy: adjustments are absolute, not cumulative, so each
@@ -378,6 +392,79 @@ async function adjust(job) {
   } catch (e) {
     log(`  adjust FAILED: ${e.message}`)
     await setStatus(job.id, { status: 'failed', log: String(e.message).slice(0, 4000) })
+  }
+}
+
+/**
+ * Re-finish a forged tile: normalize and flatten the cached Meshy mesh again with
+ * new settings, and re-preview. No Meshy call, so it costs nothing but a minute.
+ *
+ * This is what makes the forge a loop rather than a one-shot. Surface height, skirt
+ * and ground colour are all decided during normalize/flatten, so none of them can be
+ * changed by nudging the finished tile the way adjust() does for the other kinds.
+ */
+async function refinish(job) {
+  const raw = path.join(os.tmpdir(), `tilejob-${job.id}.raw.glb`)
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'tilejob-'))
+  const norm = path.join(tmp, 'norm.glb')
+  const out = path.join(tmp, job.output_name)
+  let stdout = ''
+  try {
+    if (!fs.existsSync(raw)) {
+      throw new Error('the generated mesh is no longer cached (the worker restarted) — re-run the job')
+    }
+    const args = [
+      '--max-old-space-size=8192',
+      path.join(REPO, 'scripts/tiles/normalize-tile.mjs'), raw, norm,
+      `--surface=${Number(job.surface)}`,
+      `--budget=${Math.round(Number(job.budget) || 8000)}`,
+    ]
+    if (job.rebuild_base) args.push('--rebuild-base')
+    const n = await run('node', args, { cwd: REPO, maxBuffer: 32 * 1024 * 1024, timeout: 40 * 60_000 })
+    stdout += n.stdout + n.stderr
+
+    const flat = [path.join(REPO, 'scripts/tiles/kenney-flatten.mjs'), norm, out]
+    if (job.skirt != null) flat.push(`--skirt=${Number(job.skirt)}`)
+    if (/^#[0-9a-fA-F]{6}$/.test(job.base_top_color || '')) {
+      flat.push(`--ground=${Number(job.surface)}:${job.base_top_color}`)
+    }
+    const f = await run('node', flat, { cwd: REPO, maxBuffer: 32 * 1024 * 1024, timeout: 20 * 60_000 })
+    stdout += '\n' + f.stdout + f.stderr
+
+    const png = out.replace(/\.glb$/i, '.png')
+    await run('python3', [path.join(REPO, 'scripts/tiles/render_glb.py'), out, png],
+              { cwd: REPO, timeout: 20 * 60_000 })
+
+    const up = await db.storage.from('tile-previews')
+      .upload(`${job.id}.png`, fs.readFileSync(png), { contentType: 'image/png', upsert: true })
+    if (up.error) throw new Error(`preview upload failed: ${up.error.message}`)
+    const { data: pub } = db.storage.from('tile-previews').getPublicUrl(`${job.id}.png`)
+
+    fs.copyFileSync(out, path.join(os.tmpdir(), `tilejob-${job.id}.glb`))
+    fs.copyFileSync(png, path.join(os.tmpdir(), `tilejob-${job.id}.png`))
+
+    const last = (re) => { const h = [...stdout.matchAll(re)]; return h.length ? h[h.length - 1][1] : undefined }
+    const plate = last(/plateTop=([\d.]+)/g)
+    const tris = /triangles=[\d,]+ -> ([\d,]+)/.exec(stdout)?.[1]?.replace(/,/g, '')
+
+    await setStatus(job.id, {
+      status: 'preview_ready',
+      preview_url: `${pub.publicUrl}?t=${Date.now()}`,
+      log: stdout.trim().split('\n').slice(-12).join('\n'),
+      measured_plate_top: plate ? Number(plate) : null,
+      triangles: tris ? Number(tris) : null,
+      bytes: fs.statSync(out).size,
+    })
+    log(`  re-finished — plateTop=${plate} tris=${tris}`)
+  } catch (e) {
+    const detail = `${e.stdout || ''}${e.stderr || ''}`.trim() || e.message
+    log(`  refinish FAILED: ${e.message}`)
+    await setStatus(job.id, {
+      status: 'failed',
+      log: `${stdout}\n──────────\n${detail}`.trim().split('\n').slice(-16).join('\n'),
+    })
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true })
   }
 }
 
