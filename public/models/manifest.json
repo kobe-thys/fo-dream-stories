@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-02T02:03:43.216Z",
+  "generatedAt": "2026-09-08T17:16:15.394Z",
   "models": [
     {
       "file": "0 - mother tree2.glb",
@@ -7,6 +7,13 @@
       "thumb": "/models/0%20-%20mother%20tree2.png",
       "bytes": 387884,
       "hash": "205e4b54"
+    },
+    {
+      "file": "a-garden-of-mushrooms.glb",
+      "label": "a garden of mushrooms",
+      "thumb": "/models/a-garden-of-mushrooms.png",
+      "bytes": 118508,
+      "hash": "acd3f0c8"
     },
     {
       "file": "bridge.glb",
