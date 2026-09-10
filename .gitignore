@@ -49,3 +49,4 @@ art/cutouts/
 # Python bytecode
 __pycache__/
 *.pyc
+handoff/
