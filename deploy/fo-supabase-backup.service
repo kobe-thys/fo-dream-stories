@@ -1,0 +1,17 @@
+[Unit]
+Description=FO Dream Stories — daily Supabase backup
+Documentation=file:///root/fo-dream-stories/scripts/backup-supabase.mjs
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/fo-dream-stories
+# Reads SUPABASE_SERVICE_ROLE. A rotated key needs no restart — oneshot units read
+# this fresh on every run.
+EnvironmentFile=/root/.secrets/tokens.env
+ExecStart=/usr/bin/node /root/fo-dream-stories/scripts/backup-supabase.mjs
+# The backup holds children's personal data.
+UMask=0077
+TimeoutStartSec=1800
+Nice=10

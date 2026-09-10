@@ -50,6 +50,36 @@ dream tip is revealed as a reward.
   which yields silent recordings and Whisper hallucination. Use
   `MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'`
 
+
+## Supabase backup (daily)
+
+`scripts/backup-supabase.mjs`, run by `fo-supabase-backup.timer` at 03:30 local.
+
+```bash
+systemctl list-timers fo-supabase-backup     # when does it next run?
+journalctl -u fo-supabase-backup -n 30       # what happened last night?
+systemctl start fo-supabase-backup.service   # run one now
+node scripts/backup-supabase.mjs --dry-run   # see what it would do, write nothing
+```
+
+Backs up what git does not: all 10 tables as JSON, plus the `dream-images`,
+`dream-inputs` and `story-audio` buckets. **Deliberately skips `tile-sources`
+(162 MB of raw generator uploads) and `tile-previews`** — intermediate artefacts
+whose finished output is already in git.
+
+Layout under `/root/backups/fo-dream-stories/`: `latest/` is a storage mirror
+(objects are immutable, so only missing ones are fetched — a run takes ~7s rather
+than 50s), and `YYYY-MM-DD/` holds that day's table JSON plus a storage manifest.
+14 days retained.
+
+**This directory holds children's personal data.** It is 0700, the unit sets
+`UMask=0077`, and it must never be moved somewhere served, synced anywhere public,
+or committed.
+
+**It is on the SAME DISK as the thing it protects.** That covers a bad migration or
+an accidental delete, not the box dying. Copying `latest/` and the newest dated dir
+off-site is still worth doing.
+
 ## Plans
 
 Plans 1-11 are complete; see `docs/superpowers/`. Plan 12 (the tile forge) is built

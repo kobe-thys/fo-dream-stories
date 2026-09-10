@@ -1,0 +1,14 @@
+[Unit]
+Description=FO Dream Stories — run the Supabase backup daily
+Documentation=file:///root/fo-dream-stories/scripts/backup-supabase.mjs
+
+[Timer]
+# 03:30 local. Quiet hours, and well clear of any evening story session.
+OnCalendar=*-*-* 03:30:00
+# If the box was off at 03:30, run once it is back rather than skipping the day.
+Persistent=true
+# Avoid every timer on the machine firing at the same instant.
+RandomizedDelaySec=600
+
+[Install]
+WantedBy=timers.target
