@@ -1,3 +1,62 @@
+# CLAUDE.md — FO's Dream Stories
+
+## Project Overview
+
+A children's bedtime story web app. Parents read/play magical stories with their kids
+on a hexagonal dream map. After each story, the child **sleeps**, and tells their dream
+the next session — AI generates a dream image as a token. Alex's (the creator's son)
+dream tip is revealed as a reward.
+
+- **Everything lives in this repo** (Next.js 16, TypeScript, Tailwind v4, Supabase,
+  Vercel). Code, all `.glb` tiles, migrations, and — since 2026-09-10 — the product
+  brief, plans and specs under `docs/`.
+- **Live app:** https://fo-dream-stories.vercel.app
+- **Product brief:** `docs/product-brief.md` (and `.docx` revisions)
+- **Plans and specs:** `docs/superpowers/plans/`, `docs/superpowers/specs/`
+- **Not in git, by design:** secrets (`/root/.secrets/tokens.env`) and all Supabase
+  data — 10 tables plus the `dream-images`, `dream-inputs`, `story-audio`,
+  `tile-previews` and `tile-sources` buckets. The schema IS in
+  `supabase/migrations/`; the contents are not.
+
+## Start of session checklist
+
+1. `source /root/.secrets/tokens.env` — loads all API tokens
+2. Read the relevant doc under `docs/superpowers/` for task state
+3. `git log --oneline -10` for recent changes
+
+## Architecture
+
+- Next.js 16 App Router, `app/` directory, `'use client'` components
+- Supabase: PostgreSQL + RLS + Storage
+- Auth via Supabase Auth (email/password), guarded by `proxy.ts` (not middleware.ts)
+- OpenAI: Whisper (transcribe), GPT-4o Vision (describe drawing), DALL-E 3 (dream
+  image), gpt-image-1 (tile concept drawings). ElevenLabs for story narration.
+- Meshy for image-to-3D in the tile forge
+
+## Key gotchas
+
+- `proxy.ts` not `middleware.ts` — Next.js 16, export named `proxy`
+- Dynamic route params: use `useParams()` in client components (async in Next 15+)
+- OpenAI client: instantiate **inside** the handler, not at module level (breaks build)
+- Supabase Storage uploads need a **service role JWT**, not a personal access token
+- Supabase management SQL: `POST https://api.supabase.com/v1/projects/{ref}/database/query`
+- New tables need `GRANT ALL ON public.{table} TO authenticated;` AND
+  `GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO service_role;`
+- Hex tiles use `clipPath` — use CSS `filter: drop-shadow` for glow, not border
+- **Never use `next/image` for Supabase Storage URLs** — plain `<img>` instead
+- **CSS keyframes animating `filter`**: do NOT also set an inline `filter` on the same
+  element — inline wins. Set `filter: undefined` in React while the animation runs.
+- **MediaRecorder MIME type**: detect support first — iOS Safari has no `audio/webm`,
+  which yields silent recordings and Whisper hallucination. Use
+  `MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'`
+
+## Plans
+
+Plans 1-11 are complete; see `docs/superpowers/`. Plan 12 (the tile forge) is built
+and documented below.
+
+---
+
 @AGENTS.md
 
 ## Admin normalizer (Plan 11)
