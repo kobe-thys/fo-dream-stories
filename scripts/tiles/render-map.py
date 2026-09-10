@@ -102,7 +102,10 @@ CAMERAS = {
     'top':  (0.02, 2.40, 30.0),
 }
 back, height, fov = CAMERAS.get(ANGLE, CAMERAS['low'])
-dist = span * 0.95
+# A small neighbourhood has a tiny span, and scaling the camera purely by it puts the
+# eye inside the artwork. Tiles are ~1 unit across and story tiles stand ~1.3 tall, so
+# hold a floor that keeps the whole cluster and its vertical features in frame.
+dist = max(span, 4.0) * 0.95
 eye = (cx, cz * 0 + dist * height, cz + dist * back)
 target = (cx, 0.0, cz)
 

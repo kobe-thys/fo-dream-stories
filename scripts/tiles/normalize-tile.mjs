@@ -703,8 +703,36 @@ const pcz = plate.reduce((s, p) => s + p[2], 0) / plate.length
 let pR = 0
 for (const p of plate) pR = Math.max(pR, Math.hypot(p[0] - pcx, p[2] - pcz))
 
+/**
+ * The footprint check that actually matters.
+ *
+ * Max radius alone cannot tell you whether a tile fills its hex. Scaling sets the
+ * ONE longest corner to KENNEY_R; on a deformed base every other corner then falls
+ * short, and re-measuring the max radius happily reports KENNEY_R again. A tile can
+ * be 4% too small and "verified" in the same breath -- which is exactly how pegasus
+ * shipped at 0.969 x 1.109 against a 1.000 x 1.155 contract and left a visible gap
+ * against its neighbours on the map.
+ *
+ * Extents cannot be fooled that way: a pointy-top hexagon of circumradius R is
+ * sqrt(3)*R wide in X and 2*R deep in Z, and both only hold if the hexagon is
+ * regular. No uniform scale rescues a deformed base -- that is what --rebuild-base
+ * is for -- so this fails the job rather than pretending.
+ */
+const px = [Math.min(...plate.map(p => p[0])), Math.max(...plate.map(p => p[0]))]
+const pz = [Math.min(...plate.map(p => p[2])), Math.max(...plate.map(p => p[2]))]
+const footX = px[1] - px[0]
+const footZ = pz[1] - pz[0]
+const WANT_X = Math.sqrt(3) * KENNEY_R      // 1.000
+const WANT_Z = 2 * KENNEY_R                 // 1.155
+const FOOT_TOL = 0.01                       // 1%; a correct tile hits both exactly
+
 const problems = []
 if (Math.abs(pR - KENNEY_R) > TOLERANCE) problems.push(`footprint R=${pR.toFixed(4)}, want ${KENNEY_R}`)
+if (Math.abs(footX - WANT_X) / WANT_X > FOOT_TOL || Math.abs(footZ - WANT_Z) / WANT_Z > FOOT_TOL) {
+  problems.push(
+    `footprint ${footX.toFixed(3)} x ${footZ.toFixed(3)}, want ${WANT_X.toFixed(3)} x ${WANT_Z.toFixed(3)}`
+    + ` — the base is not a regular hexagon, so it will not fill its cell. Use --rebuild-base.`)
+}
 if (Math.abs(pcx) > TOLERANCE || Math.abs(pcz) > TOLERANCE) problems.push(`off-centre (${pcx.toFixed(4)},${pcz.toFixed(4)})`)
 if (Math.abs(after.ymin) > TOLERANCE) problems.push(`base not at y=0 (${after.ymin.toFixed(4)})`)
 const ringTop = ringPlateTop()
@@ -716,7 +744,7 @@ if (SURFACE !== null) {
 }
 
 console.log(`output ${path.basename(DST)}`)
-console.log(`  R=${pR.toFixed(4)} centre=(${pcx.toFixed(4)},${pcz.toFixed(4)}) ymin=${after.ymin.toFixed(4)} plateTop=${ringTop === null ? 'n/a' : ringTop.toFixed(3)} top=${after.ymax.toFixed(3)}`)
+console.log(`  R=${pR.toFixed(4)} footprint=${footX.toFixed(3)}x${footZ.toFixed(3)} centre=(${pcx.toFixed(4)},${pcz.toFixed(4)}) ymin=${after.ymin.toFixed(4)} plateTop=${ringTop === null ? 'n/a' : ringTop.toFixed(3)} top=${after.ymax.toFixed(3)}`)
 console.log(`  triangles=${trisBefore.toLocaleString()} -> ${trisAfter.toLocaleString()}   size=${(fs.statSync(SRC).size / 1024).toFixed(0)}KB -> ${(fs.statSync(DST).size / 1024).toFixed(0)}KB`)
 
 // A rejected tile must not be left on disk: the manifest would pick it up and it
