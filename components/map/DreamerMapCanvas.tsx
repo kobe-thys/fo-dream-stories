@@ -1,9 +1,10 @@
 'use client'
 import { Suspense, useRef } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Environment } from '@react-three/drei'
+import { OrbitControls } from '@react-three/drei'
 import { MappedTile } from '@/lib/types'
 import DreamerHexTile from './DreamerHexTile'
+import DreamAtmosphere from './DreamAtmosphere'
 import MapCompass from './MapCompass'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 
@@ -26,18 +27,15 @@ export default function DreamerMapCanvas({ tiles, selectedTileId, onTileClick }:
         onPointerMissed={() => onTileClick(null)}
       >
         <Suspense fallback={null}>
-          {/* Lighting */}
-          <ambientLight intensity={0.8} />
-          <directionalLight
-            position={[10, 20, 10]}
-            intensity={1}
-            castShadow
-            shadow-mapSize-width={1024}
-            shadow-mapSize-height={1024}
-          />
-
-          {/* Environment for ambient reflections */}
-          <Environment preset="sunset" />
+          {/*
+            Sky, fog and light. Previously this was a flat ambient plus a white key
+            rendering into an empty canvas — the dark green behind the world was the
+            page showing through, which is why it read as a model on a webpage.
+            `Environment preset="sunset"` went with it: it threw warm orange onto
+            every surface, fighting the Kenney palette for no benefit, since every
+            tile is metallic 0 / roughness 1 and reflects almost nothing.
+          */}
+          <DreamAtmosphere />
 
           <OrbitControls
             ref={controlsRef}
